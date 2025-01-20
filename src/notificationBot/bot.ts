@@ -37,5 +37,26 @@ export const initializeBot = (apiKey: string) => {
     }
   });
 
+  bot.command("subscribe", async (ctx) => {
+    logger.info("Subscribe command received", { ctx });
+
+    if (!ctx.from) {
+      logger.info("Unable to retrieve user details", { ctx });
+      ctx.reply("Unable to retrieve your user details. Please try again.");
+      return;
+    }
+
+    const user = await UserService.getByTelegramID(ctx.from.id);
+    logger.info("User details", { user });
+
+    if (!user) {
+      logger.info("User not found", { ctx });
+      ctx.reply("User not found. Please try again.");
+      return;
+    }
+
+    ctx.reply("Subscribe command received");
+  });
+
   return bot;
 };
