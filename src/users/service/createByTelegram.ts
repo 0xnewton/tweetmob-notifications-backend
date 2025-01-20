@@ -9,12 +9,13 @@ import { UserExistsError } from "../errors";
 interface CreateUserParams {
   telegramUserID: TelegramUserID;
   telegramUsername: string;
-  telegramChatID: string;
+  telegramChatID: number;
 }
 
 export interface CreateUserResponse {
   user: FetchResult<User>;
   apiKey: FetchResult<APIKey>;
+  rawAPIKey: string;
 }
 
 export const createByTelegram = async (
@@ -43,6 +44,7 @@ export const createByTelegram = async (
 
   return {
     user,
-    apiKey,
+    apiKey: apiKey.stored,
+    rawAPIKey: apiKey.key,
   };
 };

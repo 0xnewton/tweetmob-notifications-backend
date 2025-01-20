@@ -1,7 +1,7 @@
 import { UnixTimestamp } from "../lib/types";
 
 export type UserID = string;
-export type TelegramUserID = string;
+export type TelegramUserID = number;
 
 export interface User {
   id: string;
@@ -10,7 +10,7 @@ export interface User {
   createdAt: UnixTimestamp;
   updatedAt: UnixTimestamp;
   defaultWebhookURL: string | null;
-  telegramUserID: string | null;
-  telegramChatID: string | null;
+  telegramUserID: number | null;
+  telegramChatID: number | null;
   telegramUsername: string | null;
 }

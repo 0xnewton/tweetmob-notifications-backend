@@ -11,7 +11,7 @@ interface CreateAPIKeyParams {
 
 export const create = async (
   params: CreateAPIKeyParams
-): Promise<FetchResult<APIKey>> => {
+): Promise<{ stored: FetchResult<APIKey>; key: string }> => {
   logger.info("Create API service request hit", { params });
   const key = generateAPIKey();
   const hash = hashWithSHA512(key);
@@ -30,5 +30,5 @@ export const create = async (
     },
   });
 
-  return apiKey;
+  return { stored: apiKey, key };
 };

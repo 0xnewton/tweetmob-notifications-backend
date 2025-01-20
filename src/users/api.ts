@@ -18,7 +18,7 @@ export const getUserByTelegramUserID = async (
 interface CreateUserParams {
   telegramUserID: TelegramUserID;
   telegramUsername: string;
-  telegramChatID: string;
+  telegramChatID: number;
   email: string | null;
   name: string | null;
   defaultWebhookURL: string | null;
