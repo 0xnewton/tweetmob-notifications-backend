@@ -17,6 +17,10 @@ export const usersCollection = (): CollectionReference<User> => {
   return db.collection(DBCollections.Users) as CollectionReference<User>;
 };
 
+export const userDocument = (userID: UserID) => {
+  return usersCollection().doc(userID);
+};
+
 export const apiKeysCollectionGroup = (): CollectionGroup<APIKey> => {
   return db.collectionGroup(DBCollections.APIKeys) as CollectionGroup<APIKey>;
 };

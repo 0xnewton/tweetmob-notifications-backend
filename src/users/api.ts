@@ -1,7 +1,19 @@
 import { logger } from "firebase-functions";
-import { usersCollection } from "../lib/refs";
+import { userDocument, usersCollection } from "../lib/refs";
 import { FetchResult } from "../lib/types";
-import { TelegramUserID, User } from "./types";
+import { TelegramUserID, User, UserID } from "./types";
+
+export const getUserByID = async (
+  userID: UserID
+): Promise<FetchResult<User> | null> => {
+  logger.info("Fetching user by user id", { userID });
+  const user = await userDocument(userID).get();
+  const data = user.data();
+  if (!user.exists || !data) {
+    return null;
+  }
+  return { data, ref: user.ref };
+};
 
 export const getUserByTelegramUserID = async (
   tgUserID: TelegramUserID

@@ -18,6 +18,7 @@ export const createAPIKey = async (
   const body: APIKey = {
     id: docRef.id,
     hash: params.hash,
+    createdBy: params.userID,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
