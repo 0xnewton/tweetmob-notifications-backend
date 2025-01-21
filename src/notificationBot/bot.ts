@@ -1,12 +1,16 @@
-import { Telegraf } from "telegraf";
+import { Telegraf, Context } from "telegraf";
 import { UserService } from "../users/service";
 import { logger } from "firebase-functions";
 import { UserExistsError } from "../users/errors";
 
-export const initializeBot = (apiKey: string) => {
-  const bot = new Telegraf(apiKey);
+interface SessionData extends Context {
+  // your custom session fields...
+}
 
-  bot.start(async (ctx) => {
+export const initializeBot = (apiKey: string) => {
+  const bot = new Telegraf<SessionData>(apiKey);
+
+  bot.start(async (ctx: SessionData) => {
     logger.info("Start command received", { ctx });
     const userID = ctx.from?.id;
     const userName = ctx.from?.username;
