@@ -1,4 +1,21 @@
 {
   "indexes": [],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "Users",
+      "fieldPath": "telegramUserID",
+      "indexes": [{
+        "queryScope": "COLLECTION",
+        "order": "ASCENDING"
+      }]
+    },
+    {
+      "collectionGroup": "APIKeys",
+      "fieldPath": "hash",
+      "indexes": [{
+        "queryScope": "COLLECTION_GROUP",
+        "order": "ASCENDING"
+      }]
+    }
+  ]
 }
