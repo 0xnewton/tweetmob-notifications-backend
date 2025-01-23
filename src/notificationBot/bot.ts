@@ -2,6 +2,10 @@ import { Telegraf, Context } from "telegraf";
 import { userService } from "../users/service";
 import { logger } from "firebase-functions";
 import { UserExistsError } from "../users/errors";
+import { SubscriptionService } from "../subscriptions/service";
+import { Subscription, SubscriptionStatus } from "../subscriptions/types";
+import { formatXHandle, isValidXHandle, parseXHandle } from "../lib/x";
+import { isValidURL } from "../lib/url";
 
 type SessionData = Context;
 
@@ -51,6 +55,26 @@ export const initializeBot = (apiKey: string) => {
       return;
     }
 
+    const args = ctx.message.text.split(" ").slice(1); // Extract arguments from the command
+    if (args.length < 2) {
+      ctx.reply(
+        "Invalid usage. Please provide an X handle and a webhook URL.\nExample: /subscribe @xHandle https://your-webhook-url.com"
+      );
+      return;
+    }
+
+    const [xHandle, webhookURL] = args;
+    logger.info("Subscribe command arguments", { xHandle, webhookURL });
+    if (!isValidXHandle(parseXHandle(xHandle))) {
+      ctx.reply("Invalid X handle. Please provide a valid Twitter handle.");
+      return;
+    }
+
+    if (!isValidURL(webhookURL)) {
+      ctx.reply("Invalid webhook URL. Please provide a valid URL.");
+      return;
+    }
+
     const user = await userService.getByTelegramID(ctx.from.id);
     logger.info("User details", { user });
 
@@ -60,7 +84,31 @@ export const initializeBot = (apiKey: string) => {
       return;
     }
 
-    ctx.reply("Subscribe command received");
+    let subscription: Subscription;
+    try {
+      const subscriptionResult = await SubscriptionService.create(
+        {
+          webhookURL,
+          xHandle,
+        },
+        { user: user.data }
+      );
+      subscription = subscriptionResult.data;
+    } catch (err) {
+      logger.error("Error creating subscription", { ctx, err });
+      ctx.reply("Something went wrong. Please try again.");
+      return;
+    }
+
+    const fmtXHandle = formatXHandle(subscription.xHandle);
+
+    ctx.reply(
+      `Subscribed successfully! ${
+        subscription.status === SubscriptionStatus.Active
+          ? `You will receive webhook events at ${subscription.webhookURL} when ${fmtXHandle} posts a new message.`
+          : `I'll message you when your subscription becomes active.`
+      }`
+    );
   });
 
   return bot;

@@ -3,6 +3,8 @@ import { User, UserID } from "../users/types";
 import { APIKey } from "../apiKeys/types";
 import { db } from "../firebase";
 import { DBCollections } from "./types";
+import { Subscription } from "../subscriptions/types";
+import { KOL } from "../kols/types";
 
 export const apiKeysCollection = (
   userID: UserID
@@ -23,4 +25,19 @@ export const userDocument = (userID: UserID) => {
 
 export const apiKeysCollectionGroup = (): CollectionGroup<APIKey> => {
   return db.collectionGroup(DBCollections.APIKeys) as CollectionGroup<APIKey>;
+};
+
+export const getSubscriptionCollection = (
+  userID: UserID
+): CollectionReference<Subscription> => {
+  return db
+    .collection(DBCollections.Users)
+    .doc(userID)
+    .collection(
+      DBCollections.Subscriptions
+    ) as CollectionReference<Subscription>;
+};
+
+export const kolCollection = (): CollectionReference<KOL> => {
+  return db.collection(DBCollections.KOLs) as CollectionReference<KOL>;
 };
