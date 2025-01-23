@@ -38,6 +38,20 @@ export const getSubscriptionCollection = (
     ) as CollectionReference<Subscription>;
 };
 
+export const getSubscriptionDocument = (
+  userID: UserID,
+  subscriptionID: string
+) => {
+  return getSubscriptionCollection(userID).doc(subscriptionID);
+};
+
 export const kolCollection = (): CollectionReference<KOL> => {
   return db.collection(DBCollections.KOLs) as CollectionReference<KOL>;
 };
+
+export const getSubscriptionCollectionGroup =
+  (): CollectionGroup<Subscription> => {
+    return db.collectionGroup(
+      DBCollections.Subscriptions
+    ) as CollectionGroup<Subscription>;
+  };
