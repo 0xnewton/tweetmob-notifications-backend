@@ -4,7 +4,7 @@ import { APIRequest, APIResponse } from "../types";
 
 export const unsubscribe = onRequest(
   async (request: APIRequest, response: APIResponse) => {
-    logger.info("Unsubscribe event handler");
+    logger.info("Unsubscribe event handler", { request, response });
 
     return;
   }

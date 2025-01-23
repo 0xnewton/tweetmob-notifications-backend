@@ -1,5 +1,5 @@
-import rateLimit from "express-rate-limit";
-import slowDown from "express-slow-down";
+import { rateLimit } from "express-rate-limit";
+import { slowDown } from "express-slow-down";
 import { Request, Response } from "express";
 import {
   HttpsFunction,
@@ -10,7 +10,7 @@ import {
 export const limiter = rateLimit({
   windowMs: 1000,
   max: 5,
-  handler: function (_req, res) {
+  handler: function(_req, res) {
     res
       .status(429)
       .send("Too many requests, please try again after a few seconds.");

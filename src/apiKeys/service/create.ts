@@ -17,7 +17,7 @@ export const create = async (
   const hash = hashWithSHA512(key);
   // Make sure it does not exist
   const existingKey = await getAPIKeyByHash({ hash });
-  if (!!existingKey) {
+  if (existingKey) {
     logger.error("API Key already exists", { hash });
     throw new Error("Something went wrong!");
   }
