@@ -39,7 +39,9 @@ export const getAPIKeyByHash = async (
 ): Promise<FetchResult<APIKey> | null> => {
   logger.info("Fetch API by hash", { params });
   const key: keyof APIKey = "hash";
-  const apiKey = await apiKeysCollectionGroup().where(key, "==", "123").get();
+  const apiKey = await apiKeysCollectionGroup()
+    .where(key, "==", params.hash)
+    .get();
   const docs = apiKey.docs.map((doc) => {
     return { data: doc.data(), ref: doc.ref };
   });
