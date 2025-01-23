@@ -1,11 +1,9 @@
 import { Telegraf, Context } from "telegraf";
-import { UserService } from "../users/service";
+import { userService } from "../users/service";
 import { logger } from "firebase-functions";
 import { UserExistsError } from "../users/errors";
 
-interface SessionData extends Context {
-  // your custom session fields...
-}
+type SessionData = Context;
 
 export const initializeBot = (apiKey: string) => {
   const bot = new Telegraf<SessionData>(apiKey);
@@ -24,7 +22,7 @@ export const initializeBot = (apiKey: string) => {
 
     // Check if user exists
     try {
-      const { rawAPIKey } = await UserService.createByTelegram({
+      const { rawAPIKey } = await userService.createByTelegram({
         telegramUserID: userID,
         telegramUsername: userName,
         telegramChatID: chatID,
@@ -37,6 +35,9 @@ export const initializeBot = (apiKey: string) => {
         // User already exists
         logger.info("User already exists", { ctx });
         ctx.reply("Welcome back!");
+      } else {
+        logger.error("Error creating user", { ctx, err });
+        ctx.reply("Something went wrong. Please try again.");
       }
     }
   });
@@ -50,7 +51,7 @@ export const initializeBot = (apiKey: string) => {
       return;
     }
 
-    const user = await UserService.getByTelegramID(ctx.from.id);
+    const user = await userService.getByTelegramID(ctx.from.id);
     logger.info("User details", { user });
 
     if (!user) {

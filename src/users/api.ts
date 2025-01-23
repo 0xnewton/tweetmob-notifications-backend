@@ -38,6 +38,13 @@ interface CreateUserParams {
 export const createUser = async (
   params: CreateUserParams
 ): Promise<FetchResult<User>> => {
+  // Make sure not user exists
+  const existingUser = await getUserByTelegramUserID(params.telegramUserID);
+  if (existingUser) {
+    logger.error("User already exists", { params });
+    throw new Error("User already exists");
+  }
+
   logger.info("Creating user", { params });
   const docRef = usersCollection().doc();
   const body: User = {
