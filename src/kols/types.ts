@@ -10,12 +10,26 @@ export enum KOLStatus {
   Deleted = "deleted",
 }
 
+export interface XKOLSnapshot {
+  xUserID: number;
+  xUserIDStr: string;
+  xScreenName: string;
+  xName: string;
+  updatedAt: number; // unix timestamp
+}
+
 export interface KOL {
   id: KOLID;
   xHandle: XHandle;
+  xUserID: number | null; // Only filled in on first notification
+  xUserIDStr: string | null; // Only filled in on first notification
+  xScreenName: string | null;
+  xName: string | null;
   status: KOLStatus;
   createdAt: UnixTimestamp;
   updatedAt: UnixTimestamp;
   deletedAt: UnixTimestamp | null;
   createdBy: UserID;
+  lastPostSeenAt: UnixTimestamp | null;
+  xUpdates: XKOLSnapshot[] | null;
 }

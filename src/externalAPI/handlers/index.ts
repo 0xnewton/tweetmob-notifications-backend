@@ -1,3 +1,3 @@
 export * from "./subscribe";
 export * from "./unsubscribe";
-export * from "./tweet";
+export * from "./onNotification";

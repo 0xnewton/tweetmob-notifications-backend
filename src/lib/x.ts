@@ -7,7 +7,7 @@ export const formatXHandle = (value: XHandle): string => {
 
 export const parseXHandle = (value: string): XHandle => {
   // Trim and remove leading '@'
-  return value.trim().replace(/^@/, "");
+  return value.trim().replace(/^@/, "").toLowerCase();
 };
 
 export const isValidXHandle = (value: string): value is XHandle => {

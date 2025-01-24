@@ -55,3 +55,11 @@ export const getSubscriptionCollectionGroup =
       DBCollections.Subscriptions
     ) as CollectionGroup<Subscription>;
   };
+
+export const getKOLCollection = (): CollectionReference<KOL> => {
+  return db.collection(DBCollections.KOLs) as CollectionReference<KOL>;
+};
+
+export const getKOLDocument = (kolID: string) => {
+  return getKOLCollection().doc(kolID);
+};

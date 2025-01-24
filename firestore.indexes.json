@@ -35,10 +35,16 @@
     {
       "collectionGroup": "KOLs",
       "fieldPath": "xHandle",
-      "indexes": [{
-        "queryScope": "COLLECTION",
-        "order": "ASCENDING"
-      }]
+      "indexes": [
+        {
+          "queryScope": "COLLECTION",
+          "order": "ASCENDING"
+        },
+        {
+          "queryScope": "COLLECTION",
+          "arrayConfig": "CONTAINS"
+        }
+      ]
     }
   ]
 }
