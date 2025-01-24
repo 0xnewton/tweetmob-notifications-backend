@@ -46,9 +46,9 @@ export const createSubscription = async (
     createdBy: params.userID,
     webhookURL: params.webhookURL,
     status:
-      params.kol.status === KOLStatus.Active
-        ? SubscriptionStatus.Active
-        : SubscriptionStatus.Pending,
+      params.kol.status === KOLStatus.Active ?
+        SubscriptionStatus.Active :
+        SubscriptionStatus.Pending,
     createdAt: Date.now(),
     updatedAt: Date.now(),
     deletedAt: null,
@@ -65,10 +65,11 @@ export const createSubscription = async (
 export const getInativeKOLSubscriptions = async (
   id: KOLID
 ): Promise<FetchResult<Subscription>[]> => {
-  const key: keyof Subscription = "kolID";
+  const kolIDKey: keyof Subscription = "kolID";
+  const statusKey: keyof Subscription = "status";
   const query = getSubscriptionCollectionGroup()
-    .where(key, "==", id)
-    .where("status", "==", SubscriptionStatus.Pending);
+    .where(kolIDKey, "==", id)
+    .where(statusKey, "==", SubscriptionStatus.Pending);
   const snapshot = await query.get();
   const docs = snapshot.docs.map((doc) => {
     return { data: doc.data(), ref: doc.ref };

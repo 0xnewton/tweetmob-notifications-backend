@@ -63,11 +63,16 @@ export const initializeBot = (apiKey: string) => {
       return;
     }
 
-    const [xHandle, webhookURL] = args;
+    let [xHandle, webhookURL] = args;
     logger.info("Subscribe command arguments", { xHandle, webhookURL });
-    if (!isValidXHandle(parseXHandle(xHandle))) {
+    xHandle = parseXHandle(xHandle);
+    if (!isValidXHandle(xHandle)) {
       ctx.reply("Invalid X handle. Please provide a valid Twitter handle.");
       return;
+    }
+
+    if (!webhookURL.startsWith("http")) {
+      webhookURL = `https://${webhookURL}`;
     }
 
     if (!isValidURL(webhookURL)) {
@@ -103,10 +108,10 @@ export const initializeBot = (apiKey: string) => {
     const fmtXHandle = formatXHandle(subscription.xHandle);
 
     ctx.reply(
-      `Subscribed successfully! ${
+      `Subscribed successfully! You will receive POST requests at ${subscription.webhookURL} when ${fmtXHandle} posts a new message${
         subscription.status === SubscriptionStatus.Active
-          ? `You will receive webhook events at ${subscription.webhookURL} when ${fmtXHandle} posts a new message.`
-          : `I'll message you when your subscription becomes active.`
+          ? "."
+          : " and your subscription becomes active (usually within 24 hours)."
       }`
     );
   });

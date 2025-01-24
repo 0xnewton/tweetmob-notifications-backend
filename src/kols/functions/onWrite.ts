@@ -9,7 +9,7 @@ import { SubscriptionStatus } from "../../subscriptions/types";
 
 export const onWrite = functions.firestore
   .document(`${DBCollections.KOLs}/{kolId}`)
-  .onWrite(async (change, context) => {
+  .onWrite(async (change) => {
     const before = change.before.data() as KOL | undefined;
     const after = change.after.data() as KOL | undefined;
     functions.logger.info("KOL updated", { before, after });
