@@ -49,6 +49,7 @@ export const createKOL = async (
     xScreenName: null,
     xName: null,
     xUpdates: null,
+    metadata: null,
   };
 
   await docRef.create(body);

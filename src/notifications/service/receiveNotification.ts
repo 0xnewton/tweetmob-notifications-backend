@@ -1,9 +1,21 @@
 import { logger } from "firebase-functions";
 import { XNotification, XNotificationItem, XTweet, XUser } from "../types";
 import { KOL, KOLID, KOLStatus, XHandle, XKOLSnapshot } from "../../kols/types";
-import { batchUpdateKOLs, bulkFetchKOLsByHandle } from "../../kols/api";
+import {
+  batchUpdateKOLs,
+  BatchUpdateKOLsParams,
+  bulkFetchKOLsByHandle,
+} from "../../kols/api";
 import { parseXHandle } from "../../lib/x";
 import { FieldValue, UpdateData } from "firebase-admin/firestore";
+import {
+  batchFetchUserTweets,
+  BatchFetchUserTweetsResponse,
+} from "../../x/api";
+import { SubscriptionService } from "../../subscriptions/service";
+import { UserTweet } from "../../lib/types";
+
+const IGNORE_NOTIFICATIONS_OLDER_THAN_SEC = 120;
 
 interface ReceiveNotificationParams {
   data: XNotification;
@@ -29,8 +41,7 @@ const extractUsersFromNotifcation = (
   const tweets = Object.values(data.globalObjects.tweets || {});
   const notifications = Object.values(data.globalObjects.notifications || {});
 
-  const newPostNotifications = notifications.filter((notification: any) => {
-    // console.log(notification);
+  const newPostNotifications = notifications.filter((notification) => {
     return notification?.message?.text?.includes("New post notifications for");
   });
 
@@ -44,8 +55,8 @@ const extractUsersFromNotifcation = (
     logger.info("Found kols in notification", { usersInNotif });
     usersInNotif?.forEach((id) => {
       const user = users[id];
-      // console.log(`notifTitle="${notifTitle}, includes=${user.name}", bool=${notifTitle.includes(user.name)}`)
-      if (user && notifTitle.includes(user.name)) {
+      const existingUserInArray = allUsers.find((u) => u.id === user.id);
+      if (user && notifTitle.includes(user.name) && !existingUserInArray) {
         allUsers.push(user);
       }
     });
@@ -57,16 +68,23 @@ const extractUsersFromNotifcation = (
     notifications,
   };
 
-  logger.info("Extracted data from notifiation", { result });
+  logger.info("Extracted data from notification", { result });
 
   return result;
 };
 
 const processNotification = async (data: ParsedNotification) => {
+  logger.info("Processing notification", { data });
   const handleToKOLDict: Record<XHandle, KOL> = {};
   const handleToXUserDict: Record<XHandle, XUser> = {};
   const xHandles = [...new Set(data.users.map(genXUserHandle))];
-  const existingKOLs = await bulkFetchKOLsByHandle(xHandles);
+  const userIDsToFetch = data.users.map((u) => u.id_str);
+  const [existingKOLs, userTweets] = await Promise.all([
+    bulkFetchKOLsByHandle(xHandles),
+    batchFetchUserTweets(userIDsToFetch),
+  ]);
+  logger.info("Fetched user tweets", { userTweets, users: data.users });
+
   existingKOLs.forEach((dupe) => {
     handleToKOLDict[dupe.data.id] = dupe.data;
   });
@@ -74,50 +92,36 @@ const processNotification = async (data: ParsedNotification) => {
     const handle = genXUserHandle(user);
     handleToXUserDict[handle] = user;
   });
-  const kolsToUpdate: { id: KOLID; payload: UpdateData<KOL> }[] = []; // Update kols with last post time & any additional data like id_str from twitter etc
-  for (const user of data.users) {
-    const handle = genXUserHandle(user);
-    const recentKOLData = handleToKOLDict[handle];
-    if (!recentKOLData) {
-      logger.warn("No recent KOL data or XUser data", {
-        kol: recentKOLData ?? null,
-        user,
-      });
-      continue;
-    }
-    const payload = constructKOLUpdatePayload(recentKOLData, user);
-    if (recentKOLData.lastPostSeenAt) {
-      const timeDiffMS = Date.now() - recentKOLData.lastPostSeenAt;
-      // ignore if over 120 seconds recently (duplicate)
-      if (timeDiffMS > 1000 * 120) {
-        logger.info("Valid recent post for user", {
-          user,
-          kol: recentKOLData,
-          screenName: user.screen_name,
-          timeDiffMS,
-        });
-        // valid recent post, not duplicate
-        // update timestamp
-        kolsToUpdate.push({
-          id: recentKOLData.id,
-          payload,
-        });
-      } else {
-        // Skipping duplicate user
-        logger.debug("Skipping duplicate user", {
-          screenName: user.screen_name,
-          timeDiffMS,
-        });
-      }
-    } else {
-      kolsToUpdate.push({
-        id: recentKOLData.id,
-        payload,
-      });
-    }
-  }
+  const kolsToUpdate = extractKOLsFromUsers(data.users, handleToKOLDict);
+  const userMostRecentTweets = extractUserMostRecentTweets(
+    userTweets,
+    data.users,
+    handleToKOLDict
+  );
 
-  await batchUpdateKOLs(kolsToUpdate);
+  const augmenteUserMostRecentTweets = augmentUserTweetsWithKOLData(
+    userMostRecentTweets,
+    handleToXUserDict
+  );
+
+  // Hit subscription webhooks - this is the most vital & time sensitive part
+  const webhooksResult = await SubscriptionService.batchHitWebhooks(
+    augmenteUserMostRecentTweets
+  );
+
+  // Augment with kol ids + tweets
+  const augmentedKOLUpdateData: BatchUpdateKOLsParams[] = [];
+
+  // Data integrity
+  await Promise.all([
+    // Update KOL lastPostSeenAt, xdata etc & add the tweets to kol subcollection
+    batchUpdateKOLs(augmentedKOLUpdateData),
+    // Write webhook receipts for billing
+
+    // Add tweets to KOL tweets subcollection
+
+    // Auto activate subscriptions if pending
+  ]);
 
   return;
 };
@@ -151,4 +155,115 @@ const constructKOLUpdatePayload = (kol: KOL, xUser: XUser): UpdateData<KOL> => {
   }
 
   return result;
+};
+
+const extractKOLsFromUsers = (
+  users: XUser[],
+  handleToKOLDict: Record<XHandle, KOL>
+) => {
+  const kolsToUpdate: { id: KOLID; payload: UpdateData<KOL> }[] = []; // Update kols with last post time & any additional data like id_str from twitter etc
+  for (const user of users) {
+    const handle = genXUserHandle(user);
+    const recentKOLData = handleToKOLDict[handle];
+    if (!recentKOLData) {
+      logger.warn("No recent KOL data or XUser data", {
+        kol: recentKOLData ?? null,
+        user,
+      });
+      continue;
+    }
+    const payload = constructKOLUpdatePayload(recentKOLData, user);
+    if (recentKOLData.lastPostSeenAt) {
+      const timeDiffMS = Date.now() - recentKOLData.lastPostSeenAt;
+      // ignore if over 120 seconds recently (duplicate)
+      if (timeDiffMS > 1000 * IGNORE_NOTIFICATIONS_OLDER_THAN_SEC) {
+        logger.info("Valid recent post for user", {
+          user,
+          kol: recentKOLData,
+          screenName: user.screen_name,
+          timeDiffMS,
+        });
+        // valid recent post, not duplicate
+        // update timestamp
+        kolsToUpdate.push({
+          id: recentKOLData.id,
+          payload,
+        });
+      } else {
+        // Skipping duplicate user
+        logger.debug("Skipping duplicate user", {
+          screenName: user.screen_name,
+          timeDiffMS,
+        });
+      }
+    } else {
+      kolsToUpdate.push({
+        id: recentKOLData.id,
+        payload,
+      });
+    }
+  }
+  return kolsToUpdate;
+};
+
+const extractUserMostRecentTweets = (
+  userTweets: BatchFetchUserTweetsResponse[],
+  xUsers: XUser[],
+  handleToKOLDict: Record<XHandle, KOL>
+) => {
+  const userMostRecentTweets: UserTweet[] = userTweets
+    .map((t) => {
+      const maxCreatedTime = Math.max(
+        ...t.tweets.map((tweet) =>
+          !tweet.created_at ? 0 : new Date(tweet.created_at).getTime()
+        )
+      );
+      const mostRecentTweet = t.tweets.find(
+        (tweet) =>
+          tweet.created_at &&
+          new Date(tweet.created_at).getTime() === maxCreatedTime
+      );
+      const xUser = xUsers.find((u) => u.id_str === t.userID);
+      if (!xUser) {
+        logger.error("No user found for tweet", { tweet: t });
+        return null;
+      }
+      const handle = genXUserHandle(xUser);
+      const userKOL = handleToKOLDict[handle];
+      if (!handle || !userKOL) {
+        logger.error("No KOL found for user", { user: xUser });
+        return null;
+      }
+      return { user: userKOL, tweet: mostRecentTweet || t.tweets[0] };
+    })
+    .filter((a): a is UserTweet => !!a);
+
+  return userMostRecentTweets;
+};
+
+const augmentUserTweetsWithKOLData = (
+  userMostRecentTweets: UserTweet[],
+  handleToXUserDict: Record<XHandle, XUser>
+) => {
+  const augmenteUserMostRecentTweets = userMostRecentTweets.map((ut) => {
+    // For example, if KOL hasnt been updated yet, we fill in the data here
+    const userClone = {
+      ...ut.user,
+    };
+    if (!userClone.xUserID) {
+      const xUser = handleToXUserDict[ut.user.xHandle];
+      if (xUser) {
+        const tempKOLUpdateData = constructKOLUpdatePayload(ut.user, xUser);
+        if (tempKOLUpdateData.xUserID) {
+          userClone.xUserID = tempKOLUpdateData.xUserID as number;
+          userClone.xUserIDStr = tempKOLUpdateData.xUserIDStr as string;
+          userClone.xScreenName = tempKOLUpdateData.xScreenName as string;
+          userClone.xName = tempKOLUpdateData.xName as string;
+        }
+      }
+    }
+    return { user: userClone, tweet: ut.tweet };
+  });
+
+  return augmenteUserMostRecentTweets;
 };
