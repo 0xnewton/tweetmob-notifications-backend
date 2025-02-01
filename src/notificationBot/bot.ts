@@ -3,7 +3,7 @@ import { userService } from "../users/service";
 import { logger } from "firebase-functions";
 import { UserExistsError } from "../users/errors";
 import { SubscriptionService } from "../subscriptions/service";
-import { Subscription, SubscriptionStatus } from "../subscriptions/types";
+import { Subscription } from "../subscriptions/types";
 import { formatXHandle, isValidXHandle, parseXHandle } from "../lib/x";
 import { isValidURL } from "../lib/url";
 import { ApiKeys } from "../apiKeys/service";
@@ -15,6 +15,10 @@ export const initializeBot = (apiKey: string) => {
   const bot = new Telegraf<Context>(apiKey);
 
   bot.start(async (ctx: Context) => {
+    ctx.reply(
+      "Welcome to the Tweetmob Notifications Bot! Use /help to see the available commands."
+    );
+
     logger.info("Start command received", { ctx });
     const userID = ctx.from?.id;
     const userName = ctx.from?.username;
@@ -28,19 +32,18 @@ export const initializeBot = (apiKey: string) => {
 
     // Check if user exists
     try {
-      const { rawAPIKey } = await userService.createByTelegram({
+      ctx.reply("Give me a moment while I set up your account...");
+      await userService.createByTelegram({
         telegramUserID: userID,
         telegramUsername: userName,
         telegramChatID: chatID,
+        makeAPIKey: false,
       });
-      ctx.reply(
-        `Welcome! Your API key is:\n\`${rawAPIKey}\`\n\nKeep it safe! We will never show it to you again.`
-      );
     } catch (err) {
       if (err instanceof UserExistsError) {
         // User already exists
         logger.info("User already exists", { ctx });
-        ctx.reply("Welcome back!");
+        ctx.reply("Oh, I've seen you before. Welcome back!");
       } else {
         logger.error("Error creating user", { ctx, err });
         ctx.reply("Something went wrong. Please try again.");
@@ -50,6 +53,7 @@ export const initializeBot = (apiKey: string) => {
 
   bot.command("generateApiKey", async (ctx) => {
     logger.info("API key generation command received", { ctx });
+    ctx.reply("Ok, generating a new API key...");
 
     let user: FetchResult<User>;
     try {
@@ -106,12 +110,14 @@ export const initializeBot = (apiKey: string) => {
       return;
     }
 
+    ctx.reply("Ok, subscribing. Please give me a moment...");
+
     const user = await userService.getByTelegramID(ctx.from.id);
     logger.info("User details", { user });
 
     if (!user) {
       logger.info("User not found", { ctx });
-      ctx.reply("User not found. Please try again.");
+      ctx.reply("I can't find your account details. Please try again.");
       return;
     }
 
@@ -134,11 +140,16 @@ export const initializeBot = (apiKey: string) => {
     const fmtXHandle = formatXHandle(subscription.xHandle);
 
     ctx.reply(
-      `Subscribed successfully! You will receive POST requests at ${subscription.webhookURL} when ${fmtXHandle} posts a new message${
-        subscription.status === SubscriptionStatus.Active
-          ? "."
-          : " and your subscription becomes active (usually within 24 hours)."
-      }`
+      `Subscribed to ${fmtXHandle} successfully! You will receive notifications for new tweets.`
+    );
+  });
+
+  bot.command("help", (ctx) => {
+    ctx.reply(
+      "Available commands:\n\n" +
+        "/generateApiKey - Generate a new API key\n" +
+        "/subscribe @xHandle https://your-webhook-url.com - Subscribe to a Twitter handle\n" +
+        "/help - Show this help message"
     );
   });
 
