@@ -120,7 +120,7 @@ export const initializeBot = (apiKey: string) => {
       return;
     }
 
-    ctx.reply("Ok, subscribing. Please give me a moment...");
+    ctx.reply("Looks interesting. Please give me a moment to set things up...");
 
     // const user = await userService.getByTelegramID(ctx.from.id);
     // logger.info("User details", { user });

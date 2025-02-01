@@ -50,7 +50,7 @@ dangerousPublicUnauthenticatedRouter.use(limiter);
 dangerousPublicUnauthenticatedRouter.use(speedLimiter);
 // Demo subscription webhook for internal testing
 dangerousPublicUnauthenticatedRouter.post(
-  "/demo/webhookHandler",
+  "/webhookHandler",
   handlerWrapper(demoWebhookHandler)
 );
 

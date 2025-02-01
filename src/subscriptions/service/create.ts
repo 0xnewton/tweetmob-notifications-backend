@@ -1,12 +1,18 @@
 import { logger } from "firebase-functions";
 import { User } from "../../users/types";
-import { createSubscription, getExistingSubscriptionByXHandle } from "../api";
+import {
+  createSubscription,
+  getExistingSubscriptionByXHandle,
+  getUserSubCount,
+} from "../api";
 import { parseXHandle, isValidXHandle } from "../../lib/x";
 import { getKOLByXHandle } from "../../kols/api";
 import { KOLService } from "../../kols/service";
 import { FetchResult } from "../../lib/types";
 import { Subscription } from "../types";
 import { isValidURL } from "../../lib/url";
+
+const DEFAULT_MAX_SUB_COUNT = 50;
 
 interface CreateSubscriptionParams {
   webhookURL: string;
@@ -34,13 +40,26 @@ export const create = async (
   }
 
   // Make sure there is no sub for this xhandle already
-  let [existingSub, existingKOL] = await Promise.all([
+  let [existingSub, existingKOL, subCount] = await Promise.all([
     getExistingSubscriptionByXHandle({
       xHandle: parsedXHandle,
       userID: context.user.id,
     }),
     getKOLByXHandle(parsedXHandle),
+    getUserSubCount(context.user.id),
   ]);
+
+  const maxSubCount = DEFAULT_MAX_SUB_COUNT;
+
+  if (subCount >= maxSubCount) {
+    logger.debug("User has reached max subscription count", {
+      subCount,
+      max: maxSubCount,
+    });
+    throw new Error(
+      `You have reached the maximum number of subscriptions: ${maxSubCount}`
+    );
+  }
 
   // Get or create the kol parent document
   if (existingSub) {

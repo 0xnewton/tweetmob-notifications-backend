@@ -132,3 +132,16 @@ export const batchUpdateKOLSubscriptionStatuses = async (
   });
   await batch.commit();
 };
+
+export const getUserSubCount = async (userID: UserID): Promise<number> => {
+  const collectionRef = getSubscriptionCollection(userID);
+
+  // Create an aggregation query for counting documents
+  const countAggregation = collectionRef.count();
+
+  // Execute the aggregation query
+  const snapshot = await countAggregation.get();
+
+  // The result is available in snapshot.data().count
+  return snapshot.data().count;
+};
