@@ -134,7 +134,11 @@ export const batchUpdateKOLSubscriptionStatuses = async (
 };
 
 export const getUserSubCount = async (userID: UserID): Promise<number> => {
-  const collectionRef = getSubscriptionCollection(userID);
+  const collectionRef = getSubscriptionCollection(userID).where(
+    "status",
+    "==",
+    SubscriptionStatus.Active
+  );
 
   // Create an aggregation query for counting documents
   const countAggregation = collectionRef.count();

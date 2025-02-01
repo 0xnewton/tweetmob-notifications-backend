@@ -40,6 +40,7 @@ export interface Receipt {
   kolID: KOLID;
   userID: UserID;
   response: WebhookResponseData | null;
+  url: string;
   error: ResponseError | null;
   webhookPayload: WebhookPayload;
   webhookHitAt: UnixTimestamp;

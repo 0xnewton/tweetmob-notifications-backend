@@ -4,9 +4,9 @@ export interface XNotification {
 }
 
 interface GlobalObjects {
-  users: Record<string, XUser>;
-  tweets: Record<string, XTweet>;
-  notifications: Record<string, XNotificationItem>;
+  users?: Record<string, XUser>;
+  tweets?: Record<string, XTweet>;
+  notifications?: Record<string, XNotificationItem>;
 }
 
 export interface XUser {

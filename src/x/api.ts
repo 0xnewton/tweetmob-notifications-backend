@@ -2,20 +2,26 @@ import { logger } from "firebase-functions";
 import { rapidAPIKey } from "../lib/secrets";
 import { ParsedTweetLegacy, UserTweetRootObject } from "./types";
 import { batch } from "../lib/utils";
-import { XUserID } from "../kols/types";
+import { XUserIDStr } from "../kols/types";
 
-const DEFAULT_RECENT_TWEET_LIMIT_MINS = 5;
+const DEFAULT_RECENT_TWEET_LIMIT_MS = 5 * 60 * 1000;
 const DEFAULT_MAX_TWEETS = 5;
 
 export interface BatchFetchUserTweetsResponse {
-  xUserID: XUserID;
+  xUserIDStr: XUserIDStr;
   tweets: ParsedTweetLegacy[];
 }
 export const batchFetchUserTweets = async (
-  userIDs: XUserID[],
+  userIDs: XUserIDStr[],
   maxTweets = DEFAULT_MAX_TWEETS,
-  recentTimeMins = DEFAULT_RECENT_TWEET_LIMIT_MINS
+  recentTimeMS = DEFAULT_RECENT_TWEET_LIMIT_MS
 ): Promise<BatchFetchUserTweetsResponse[]> => {
+  logger.info("Batch fetching user tweets", {
+    userIDs,
+    maxTweets,
+    recentTimeMS,
+    min: recentTimeMS / (1000 * 60),
+  });
   if (userIDs.length === 0) {
     logger.warn("No user IDs provided");
     return [];
@@ -27,13 +33,13 @@ export const batchFetchUserTweets = async (
   for (const [batchIndex, batch] of userBatch.entries()) {
     const start = Date.now();
     const promises = batch.map((xUserID) =>
-      fetchUserTweets(xUserID, maxTweets, recentTimeMins)
+      fetchUserTweets(xUserID, maxTweets, recentTimeMS)
     );
     const intermediateResults = await Promise.all(promises);
 
     results.push(
       ...intermediateResults.map((tweets, idx) => ({
-        xUserID: batch[idx],
+        xUserIDStr: batch[idx],
         tweets,
       }))
     );
@@ -50,11 +56,11 @@ export const batchFetchUserTweets = async (
 };
 
 export const fetchUserTweets = async (
-  xUserID: XUserID,
+  xUserID: XUserIDStr,
   maxTweets = DEFAULT_MAX_TWEETS,
-  recentTimeMins = DEFAULT_RECENT_TWEET_LIMIT_MINS
+  recentTimeMS = DEFAULT_RECENT_TWEET_LIMIT_MS
 ): Promise<ParsedTweetLegacy[]> => {
-  logger.info("Fetching user tweets", { xUserID, maxTweets, recentTimeMins });
+  logger.info("Fetching user tweets", { xUserID, maxTweets, recentTimeMS });
   const apiKey = rapidAPIKey.value();
   const url = `https://twitter135.p.rapidapi.com/v2/UserTweets/?id=${xUserID}&count=${maxTweets}`;
   const options = {
@@ -68,7 +74,7 @@ export const fetchUserTweets = async (
   try {
     const response = await fetch(url, options);
     const result = (await response.json()) as UserTweetRootObject | undefined;
-    logger.info("Fetched user tweets", { result });
+    logger.info("Fetched user tweets from rapid api", { result });
 
     const entries =
       result?.data?.user?.result?.timeline_v2?.timeline?.instructions?.find(
@@ -76,24 +82,25 @@ export const fetchUserTweets = async (
       )?.entries;
 
     const tweets: ParsedTweetLegacy[] = [];
-    if (entries && entries.length > 0) {
+    if (entries?.length) {
       for (const entry of entries.slice(0, maxTweets)) {
         const username =
           entry?.content?.itemContent?.tweet_results?.result?.core?.user_results
             ?.result?.legacy?.screen_name || "username";
         const item = entry?.content?.itemContent?.tweet_results?.result?.legacy;
+        if (!item) {
+          logger.debug("No tweet provided", { item, entry, username });
+          continue;
+        }
 
-        if (recentTimeMins && recentTimeMins > 0) {
+        if (recentTimeMS) {
           const createdAt = item?.created_at;
           // check if within the last 5 minutes
           if (!createdAt) {
             logger.debug("Tweet has no creation time", { item });
             continue;
           }
-          const recentTimeThresholdMS = recentTimeMins * 60 * 1000;
-          const shiftedAnchorTime = new Date(
-            Date.now() - recentTimeThresholdMS
-          );
+          const shiftedAnchorTime = new Date(Date.now() - recentTimeMS);
           const createdDateTime = new Date(createdAt);
           if (isNaN(createdDateTime.getTime())) {
             logger.warn("Invalid date format", { createdAt });
@@ -107,7 +114,8 @@ export const fetchUserTweets = async (
             isTweetTooOld,
           });
           if (isTweetTooOld) {
-            const diffInMins = (Date.now() - createdDateTime.getTime()) / 60000;
+            const diffInMins =
+              (Date.now() - createdDateTime.getTime()) / (60 * 1000);
             logger.debug("Tweet is older than 5 minutes", {
               createdAt,
               diffInMins,
@@ -129,6 +137,7 @@ export const fetchUserTweets = async (
             preview: item.full_text,
             userIdString: item.user_id_str,
           };
+          logger.info("Adding tweet", payload);
           tweets.push(payload);
         }
       }

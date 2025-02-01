@@ -13,7 +13,7 @@ import { Subscription } from "../types";
 import { isValidURL } from "../../lib/url";
 import { SubscriptionExistsError } from "../errors";
 
-const DEFAULT_MAX_SUB_COUNT = 50;
+const DEFAULT_MAX_SUB_COUNT = 500;
 
 interface CreateSubscriptionParams {
   webhookURL: string;

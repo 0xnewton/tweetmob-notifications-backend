@@ -49,30 +49,33 @@ const valdiatePayload = (payload: unknown): payload is ExpectedBody => {
   if (!payload.globalObjects) {
     return false;
   }
-  if (!("users" in payload.globalObjects)) {
-    return false;
-  }
-  if (!("tweets" in payload.globalObjects)) {
-    return false;
-  }
-  if (!("notifications" in payload.globalObjects)) {
-    return false;
-  }
+  // if (!("users" in payload.globalObjects)) {
+  //   return false;
+  // }
+  // if (!("tweets" in payload.globalObjects)) {
+  //   return false;
+  // }
+  // if (!("notifications" in payload.globalObjects)) {
+  //   return false;
+  // }
   if (
-    typeof payload.globalObjects.users !== "object" ||
-    Array.isArray(payload.globalObjects.users)
+    "users" in payload.globalObjects &&
+    (typeof payload.globalObjects.users !== "object" ||
+      Array.isArray(payload.globalObjects.users))
   ) {
     return false;
   }
   if (
-    typeof payload.globalObjects.tweets !== "object" ||
-    Array.isArray(payload.globalObjects.tweets)
+    "tweets" in payload.globalObjects &&
+    (typeof payload.globalObjects.tweets !== "object" ||
+      Array.isArray(payload.globalObjects.tweets))
   ) {
     return false;
   }
   if (
-    typeof payload.globalObjects.notifications !== "object" ||
-    Array.isArray(payload.globalObjects.notifications)
+    "notifications" in payload.globalObjects &&
+    (typeof payload.globalObjects.notifications !== "object" ||
+      Array.isArray(payload.globalObjects.notifications))
   ) {
     return false;
   }

@@ -6,6 +6,7 @@ export type KOLID = string;
 export type XHandle = string;
 export type TweetID = string;
 export type XUserID = number;
+export type XUserIDStr = string;
 
 export enum KOLStatus {
   Active = "active",
@@ -25,7 +26,7 @@ export interface KOL {
   id: KOLID;
   xHandle: XHandle;
   xUserID: XUserID | null; // Only filled in on first notification
-  xUserIDStr: string | null; // Only filled in on first notification
+  xUserIDStr: XUserIDStr | null; // Only filled in on first notification
   xScreenName: string | null;
   xName: string | null;
   status: KOLStatus;

@@ -8,7 +8,7 @@ import { Receipt, SubscriptionStatus } from "../types";
 import { HitWebhooksResponse } from "./batchHitWebhooks";
 
 export const writeWebhookReceipts = async (webhooks: HitWebhooksResponse[]) => {
-  logger.info("Writing webhook receipts", { webhooks });
+  logger.info("Writting webhook receipts", { webhooks });
   const batch = db.batch();
 
   for (const webhook of webhooks) {
@@ -24,6 +24,7 @@ export const writeWebhookReceipts = async (webhooks: HitWebhooksResponse[]) => {
       userID: webhook.subscription.createdBy,
       webhookPayload: webhook.webhookPayload,
       webhookHitAt: webhook.webhookHitAt,
+      url: webhook.url,
       response: webhook.response,
       error: webhook.error,
       createdAt: Date.now(),
@@ -44,9 +45,8 @@ export const writeWebhookReceipts = async (webhooks: HitWebhooksResponse[]) => {
         updatedAt: Date.now(),
       });
     }
-
-    await batch.commit();
   }
+  await batch.commit();
 
   return webhooks;
 };

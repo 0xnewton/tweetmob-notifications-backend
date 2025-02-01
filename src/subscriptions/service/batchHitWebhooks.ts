@@ -21,6 +21,7 @@ export interface HitWebhooksResponse {
   subscription: Subscription;
   kol: KOL;
   tweet: ParsedTweetLegacy;
+  url: string;
 }
 
 interface EnhancedSubscription {
@@ -32,6 +33,10 @@ export const hitWebhooks = async (
   userTweets: UserTweet[],
   maxConcurrentRequests = 200
 ): Promise<HitWebhooksResponse[]> => {
+  if (userTweets.length === 0) {
+    logger.debug("No user tweets for webhook");
+    return [];
+  }
   logger.info("Batch hitting webhooks service request", {
     userTweets,
     maxConcurrentRequests,
@@ -100,6 +105,7 @@ const processWebhook = async (data: EnhancedSubscription) => {
     webhookHitAt: Date.now(),
     error,
     response,
+    url: data.subscription.webhookURL,
   };
 };
 
