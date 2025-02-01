@@ -3,7 +3,12 @@ import { User, UserID } from "../users/types";
 import { APIKey } from "../apiKeys/types";
 import { db } from "../firebase";
 import { DBCollections } from "./types";
-import { Subscription } from "../subscriptions/types";
+import {
+  Receipt,
+  WehbookReceiptID,
+  Subscription,
+  SubscriptionID,
+} from "../subscriptions/types";
 import { KOL, KOLID, Tweet } from "../kols/types";
 
 export const apiKeysCollection = (
@@ -68,4 +73,25 @@ export const getTweetSubcollection = (kolID: KOLID) => {
   return getKOLDocument(kolID).collection(
     DBCollections.Tweets
   ) as CollectionReference<Tweet>;
+};
+
+export const getWebhookReceiptCollection = (
+  userID: UserID,
+  subscriptionID: SubscriptionID
+) => {
+  return getSubscriptionDocument(userID, subscriptionID).collection(
+    DBCollections.Receipts
+  ) as CollectionReference<Receipt>;
+};
+
+export const getWebhookReciptDocumentRef = (
+  userID: UserID,
+  subscriptionID: SubscriptionID,
+  receiptID?: WehbookReceiptID
+) => {
+  const collection = getWebhookReceiptCollection(userID, subscriptionID);
+  if (receiptID) {
+    return collection.doc(receiptID);
+  }
+  return collection.doc();
 };

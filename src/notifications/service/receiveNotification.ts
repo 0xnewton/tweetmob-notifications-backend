@@ -2,8 +2,8 @@ import { logger } from "firebase-functions";
 import { XNotification, XNotificationItem, XTweet, XUser } from "../types";
 import { KOL, KOLID, KOLStatus, XHandle, XKOLSnapshot } from "../../kols/types";
 import {
-  batchUpdateKOLs,
-  BatchUpdateKOLsParams,
+  batchUpdateTweetsAndKOLs,
+  BatchUpdateTweetsAndKOLsParams,
   bulkFetchKOLsByHandle,
 } from "../../kols/api";
 import { parseXHandle } from "../../lib/x";
@@ -14,6 +14,7 @@ import {
 } from "../../x/api";
 import { SubscriptionService } from "../../subscriptions/service";
 import { UserTweet } from "../../lib/types";
+import { writeWebhookReceipts } from "../../subscriptions/service/writeWebhookReceipts";
 
 const IGNORE_NOTIFICATIONS_OLDER_THAN_SEC = 120;
 
@@ -105,22 +106,35 @@ const processNotification = async (data: ParsedNotification) => {
   );
 
   // Hit subscription webhooks - this is the most vital & time sensitive part
-  const webhooksResult = await SubscriptionService.batchHitWebhooks(
+  const webhooksResult = await SubscriptionService.hitWebhooks(
     augmenteUserMostRecentTweets
   );
 
   // Augment with kol ids + tweets
-  const augmentedKOLUpdateData: BatchUpdateKOLsParams[] = [];
+  const augmentedKOLUpdateData: BatchUpdateTweetsAndKOLsParams[] = [];
+  for (const userTweet of augmenteUserMostRecentTweets) {
+    const kol = userTweet.user;
+    const tweet = userTweet.tweet;
+    const kolID = kol.id;
+    const payload: BatchUpdateTweetsAndKOLsParams = {
+      id: kolID,
+      tweet: {
+        xApiResponse: { ...tweet },
+      },
+    };
+    const kolToUpdate = kolsToUpdate.find((k) => k.id === kolID)?.payload;
+    if (kolToUpdate) {
+      payload.kolPayload = { ...kolToUpdate };
+    }
+    augmentedKOLUpdateData.push(payload);
+  }
 
   // Data integrity
   await Promise.all([
     // Update KOL lastPostSeenAt, xdata etc & add the tweets to kol subcollection
-    batchUpdateKOLs(augmentedKOLUpdateData),
-    // Write webhook receipts for billing
-
-    // Add tweets to KOL tweets subcollection
-
-    // Auto activate subscriptions if pending
+    batchUpdateTweetsAndKOLs(augmentedKOLUpdateData),
+    // Write webhook receipts for billing & auto activate subscriptions if pending
+    writeWebhookReceipts(webhooksResult),
   ]);
 
   return;

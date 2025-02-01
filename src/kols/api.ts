@@ -12,6 +12,7 @@ import { UserID } from "../users/types";
 import { KOL, KOLID, KOLStatus, Tweet, XHandle } from "./types";
 import { db } from "../firebase";
 import { logger } from "firebase-functions";
+import { ParsedTweetLegacy } from "../x/types";
 
 export const getKOLByXHandle = async (
   xHandle: XHandle
@@ -82,14 +83,25 @@ export const bulkFetchKOLsByHandle = async (
   return flat;
 };
 
-export interface BatchUpdateKOLsParams {
-  kolPayload?: UpdateData<KOL>;
-  id: KOLID;
-  tweet?: Tweet;
+interface CreateTweetPayload {
+  xApiResponse: ParsedTweetLegacy;
 }
 
-export const batchUpdateKOLs = async (params: BatchUpdateKOLsParams[]) => {
+export interface BatchUpdateTweetsAndKOLsParams {
+  kolPayload?: UpdateData<KOL>;
+  id: KOLID;
+  tweet?: CreateTweetPayload;
+}
+
+export interface WriteKOLResponses {
+  tweet: Tweet;
+}
+
+export const batchUpdateTweetsAndKOLs = async (
+  params: BatchUpdateTweetsAndKOLsParams[]
+): Promise<WriteKOLResponses[]> => {
   const batchesOfData = batch(params, 500);
+  const result: WriteKOLResponses[] = [];
 
   for (const batch of batchesOfData) {
     const dbClient = db.batch();
@@ -104,21 +116,21 @@ export const batchUpdateKOLs = async (params: BatchUpdateKOLsParams[]) => {
         const body: Tweet = {
           id: tweetRef.id,
           kolID: param.id,
-          tweet: param.tweet.tweet,
+          tweet: param.tweet.xApiResponse,
           createdAt: Date.now(),
         };
+        result.push({ tweet: body });
         dbClient.create(tweetRef, body);
       }
     }
     try {
       await dbClient.commit();
     } catch (err) {
-      logger.info(
-        "Error in batchCreateUserNotificationSeen in firestore commit",
-        { err }
-      );
+      logger.info("Error in batchUpdateTweetsAndKOLs in firestore commit", {
+        err,
+      });
     }
   }
 
-  return;
+  return result;
 };

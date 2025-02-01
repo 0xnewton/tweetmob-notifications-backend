@@ -10,7 +10,7 @@ export enum DBCollections {
   Subscriptions = "Subscriptions",
   Tweets = "Tweets",
   KOLs = "KOLs",
-  UserNotificationsSeen = "UserNotificationsSeen",
+  Receipts = "Receipts",
 }
 
 export type FetchResult<T> = {
