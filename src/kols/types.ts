@@ -1,8 +1,10 @@
 import { UnixTimestamp } from "../lib/types";
 import { UserID } from "../users/types";
+import { ParsedTweetLegacy } from "../x/types";
 
 export type KOLID = string;
 export type XHandle = string;
+export type TweetID = string;
 
 export enum KOLStatus {
   Active = "active",
@@ -32,4 +34,13 @@ export interface KOL {
   createdBy: UserID;
   lastPostSeenAt: UnixTimestamp | null;
   xUpdates: XKOLSnapshot[] | null;
+  metadata: Record<string, string> | null;
+}
+
+// Subcollection under the KOL
+export interface Tweet {
+  id: TweetID;
+  kolID: KOLID;
+  tweet: ParsedTweetLegacy;
+  createdAt: UnixTimestamp;
 }

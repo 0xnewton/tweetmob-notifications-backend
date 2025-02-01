@@ -1,10 +1,15 @@
 import { UpdateData } from "firebase-admin/firestore";
-import { getKOLCollection, getKOLDocument, kolCollection } from "../lib/refs";
+import {
+  getKOLCollection,
+  getKOLDocument,
+  getTweetSubcollection,
+  kolCollection,
+} from "../lib/refs";
 import { FetchResult } from "../lib/types";
 import { batch } from "../lib/utils";
 import { parseXHandle } from "../lib/x";
 import { UserID } from "../users/types";
-import { KOL, KOLID, KOLStatus, XHandle } from "./types";
+import { KOL, KOLID, KOLStatus, Tweet, XHandle } from "./types";
 import { db } from "../firebase";
 import { logger } from "firebase-functions";
 
@@ -76,9 +81,10 @@ export const bulkFetchKOLsByHandle = async (
   return flat;
 };
 
-interface BatchUpdateKOLsParams {
-  payload: UpdateData<KOL>;
+export interface BatchUpdateKOLsParams {
+  kolPayload?: UpdateData<KOL>;
   id: KOLID;
+  tweet?: Tweet;
 }
 
 export const batchUpdateKOLs = async (params: BatchUpdateKOLsParams[]) => {
@@ -88,8 +94,20 @@ export const batchUpdateKOLs = async (params: BatchUpdateKOLsParams[]) => {
     const dbClient = db.batch();
 
     for (const param of batch) {
-      const ref = getKOLDocument(param.id);
-      dbClient.update(ref, param.payload);
+      if (param.kolPayload) {
+        const kolRef = getKOLDocument(param.id);
+        dbClient.update(kolRef, param.kolPayload);
+      }
+      if (param.tweet) {
+        const tweetRef = getTweetSubcollection(param.id).doc();
+        const body: Tweet = {
+          id: tweetRef.id,
+          kolID: param.id,
+          tweet: param.tweet.tweet,
+          createdAt: Date.now(),
+        };
+        dbClient.create(tweetRef, body);
+      }
     }
     try {
       await dbClient.commit();
