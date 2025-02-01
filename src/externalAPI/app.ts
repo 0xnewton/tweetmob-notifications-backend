@@ -4,7 +4,7 @@ import * as cors from "cors";
 import { subscribe, unsubscribe, onNotification } from "./handlers";
 import { apiKeyValidator } from "./middleware/apiKeyValidator";
 import { limiter, speedLimiter, handlerWrapper } from "./lib";
-import { privateAPIKey } from "../lib/secrets";
+import { privateAPIKey, rapidAPIKey } from "../lib/secrets";
 import { privateAPIKeyValidator } from "./middleware/privateAPIKeyValidator";
 
 const app = express();
@@ -34,6 +34,10 @@ privateRouter.use(privateAPIKeyValidator);
 privateRouter.post("/v1/notification", handlerWrapper(onNotification));
 
 export const api = onRequest(
-  { timeoutSeconds: 540, secrets: [privateAPIKey], minInstances: 1 },
+  {
+    timeoutSeconds: 540,
+    secrets: [privateAPIKey, rapidAPIKey],
+    minInstances: 1,
+  },
   app
 );
