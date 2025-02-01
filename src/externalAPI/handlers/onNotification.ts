@@ -4,9 +4,7 @@ import { APIRequest, APIResponse } from "../types";
 import { NotificationService } from "../../notifications/service";
 import { XNotification } from "../../notifications/types";
 
-interface ExpectedBody {
-  data: XNotification;
-}
+type ExpectedBody = XNotification;
 
 export const onNotification = onRequest(
   async (request: APIRequest, response: APIResponse) => {
@@ -21,7 +19,7 @@ export const onNotification = onRequest(
     }
 
     try {
-      await NotificationService.receiveNotification({ data: payload.data });
+      await NotificationService.receiveNotification({ data: payload });
     } catch (error) {
       logger.error("Error in onNotification", { error });
       response.status(500).send({ error: "Something went wrong" });
@@ -39,48 +37,39 @@ const valdiatePayload = (payload: unknown): payload is ExpectedBody => {
   if (typeof payload !== "object") {
     return false;
   }
-  if (!("data" in payload)) {
+  if (!("globalObjects" in payload && "timeline" in payload)) {
     return false;
   }
-  if (!payload.data) {
+  if (!(typeof payload.globalObjects === "object")) {
     return false;
   }
-  if (typeof payload.data !== "object") {
+  if (!payload.globalObjects) {
     return false;
   }
-  if (!("globalObjects" in payload.data && "timeline" in payload.data)) {
+  if (!("users" in payload.globalObjects)) {
     return false;
   }
-  if (!(typeof payload.data.globalObjects === "object")) {
+  if (!("tweets" in payload.globalObjects)) {
     return false;
   }
-  if (!payload.data.globalObjects) {
-    return false;
-  }
-  if (!("users" in payload.data.globalObjects)) {
-    return false;
-  }
-  if (!("tweets" in payload.data.globalObjects)) {
-    return false;
-  }
-  if (!("notifications" in payload.data.globalObjects)) {
+  if (!("notifications" in payload.globalObjects)) {
     return false;
   }
   if (
-    typeof payload.data.globalObjects.users !== "object" ||
-    !Array.isArray(payload.data.globalObjects.users)
+    typeof payload.globalObjects.users !== "object" ||
+    Array.isArray(payload.globalObjects.users)
   ) {
     return false;
   }
   if (
-    typeof payload.data.globalObjects.tweets !== "object" ||
-    !Array.isArray(payload.data.globalObjects.tweets)
+    typeof payload.globalObjects.tweets !== "object" ||
+    Array.isArray(payload.globalObjects.tweets)
   ) {
     return false;
   }
   if (
-    typeof payload.data.globalObjects.notifications !== "object" ||
-    !Array.isArray(payload.data.globalObjects.notifications)
+    typeof payload.globalObjects.notifications !== "object" ||
+    Array.isArray(payload.globalObjects.notifications)
   ) {
     return false;
   }

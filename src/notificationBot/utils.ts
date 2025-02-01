@@ -5,6 +5,9 @@ import { userService } from "../users/service";
 import { FetchResult } from "../lib/types";
 import { TGUserNotFoundError } from "../users/errors";
 
+export const UNREGISTERED_USER_MESSAGE =
+  "You are not registered. Please use /start to register before running this command.";
+
 export const getUserFromContext = async (
   context: Context
 ): Promise<FetchResult<User>> => {

@@ -1,16 +1,15 @@
 import { Telegraf, Context } from "telegraf";
 import { userService } from "../users/service";
 import { logger } from "firebase-functions";
-import { UserExistsError } from "../users/errors";
+import { TGUserNotFoundError, UserExistsError } from "../users/errors";
 import { SubscriptionService } from "../subscriptions/service";
 import { Subscription } from "../subscriptions/types";
 import { formatXHandle, isValidXHandle, parseXHandle } from "../lib/x";
 import { isValidURL } from "../lib/url";
 import { ApiKeys } from "../apiKeys/service";
-import { getUserFromContext } from "./utils";
+import { getUserFromContext, UNREGISTERED_USER_MESSAGE } from "./utils";
 import { FetchResult } from "../lib/types";
 import { User } from "../users/types";
-import { SubscriptionExistsError } from "../subscriptions/errors";
 
 enum Commands {
   generate_api_key = "generate_api_key",
@@ -70,6 +69,10 @@ export const initializeBot = (apiKey: string) => {
     try {
       user = await getUserFromContext(ctx);
     } catch (err: any) {
+      if (err instanceof TGUserNotFoundError) {
+        ctx.reply(UNREGISTERED_USER_MESSAGE);
+        return;
+      }
       logger.error("Error fetching user", { ctx, err });
       ctx.reply(err?.message || "Something went wrong.");
       return;
@@ -127,10 +130,8 @@ export const initializeBot = (apiKey: string) => {
     try {
       user = await getUserFromContext(ctx);
     } catch (err: any) {
-      if (err instanceof UserExistsError) {
-        ctx.reply(
-          "You are not registered. Please use /start to register before running this command."
-        );
+      if (err instanceof TGUserNotFoundError) {
+        ctx.reply(UNREGISTERED_USER_MESSAGE);
         return;
       }
       logger.error("Error fetching user", { ctx, err });
@@ -150,7 +151,7 @@ export const initializeBot = (apiKey: string) => {
       subscription = subscriptionResult.data;
     } catch (err) {
       logger.error("Error creating subscription", { ctx, err });
-      if (err instanceof SubscriptionExistsError) {
+      if (err instanceof UserExistsError) {
         ctx.reply("You are already subscribed to this Twitter handle.");
         return;
       }
