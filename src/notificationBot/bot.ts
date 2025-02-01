@@ -11,6 +11,12 @@ import { getUserFromContext } from "./utils";
 import { FetchResult } from "../lib/types";
 import { User } from "../users/types";
 
+enum Commands {
+  generate_api_key = "generate_api_key",
+  subscribe = "subscribe",
+  help = "help",
+}
+
 export const initializeBot = (apiKey: string) => {
   const bot = new Telegraf<Context>(apiKey);
 
@@ -51,9 +57,9 @@ export const initializeBot = (apiKey: string) => {
     }
   });
 
-  bot.command("generateApiKey", async (ctx) => {
+  bot.command(Commands.generate_api_key, async (ctx) => {
     logger.info("API key generation command received", { ctx });
-    ctx.reply("Ok, generating a new API key...");
+    ctx.reply("Ok, generating a new API key... Please wait.");
 
     let user: FetchResult<User>;
     try {
@@ -76,7 +82,7 @@ export const initializeBot = (apiKey: string) => {
     return;
   });
 
-  bot.command("subscribe", async (ctx) => {
+  bot.command(Commands.subscribe, async (ctx) => {
     logger.info("Subscribe command received", { ctx });
 
     if (!ctx.from) {
@@ -112,12 +118,21 @@ export const initializeBot = (apiKey: string) => {
 
     ctx.reply("Ok, subscribing. Please give me a moment...");
 
-    const user = await userService.getByTelegramID(ctx.from.id);
-    logger.info("User details", { user });
+    // const user = await userService.getByTelegramID(ctx.from.id);
+    // logger.info("User details", { user });
 
-    if (!user) {
-      logger.info("User not found", { ctx });
-      ctx.reply("I can't find your account details. Please try again.");
+    // if (!user) {
+    //   logger.info("User not found", { ctx });
+    //   ctx.reply("I can't find your account details. Please try again.");
+    //   return;
+    // }
+
+    let user: FetchResult<User>;
+    try {
+      user = await getUserFromContext(ctx);
+    } catch (err: any) {
+      logger.error("Error fetching user", { ctx, err });
+      ctx.reply(err?.message || "Something went wrong.");
       return;
     }
 
@@ -144,12 +159,12 @@ export const initializeBot = (apiKey: string) => {
     );
   });
 
-  bot.command("help", (ctx) => {
+  bot.command(Commands.help, (ctx) => {
     ctx.reply(
       "Available commands:\n\n" +
-        "/generateApiKey - Generate a new API key\n" +
-        "/subscribe @xHandle https://your-webhook-url.com - Subscribe to a Twitter handle\n" +
-        "/help - Show this help message"
+        `/${Commands.generate_api_key} - Generate a new API key\n` +
+        `/${Commands.subscribe} @xHandle https://your-webhook-url.com - Subscribe to a Twitter handle\n` +
+        `/${Commands.help} - Show this help message`
     );
   });
 
