@@ -1,7 +1,7 @@
 import { create } from "./create";
-import { batchHitWebhooks } from "./batchHitWebhooks";
+import { hitWebhooks } from "./batchHitWebhooks";
 
 export const SubscriptionService = {
   create,
-  batchHitWebhooks,
+  hitWebhooks,
 };

@@ -1,8 +1,9 @@
-import { UnixTimestamp } from "../lib/types";
-import { KOLID, XHandle } from "../kols/types";
+import { UnixTimestamp, WebhookPayload } from "../lib/types";
+import { KOLID, TweetID, XHandle } from "../kols/types";
 import { UserID } from "../users/types";
 
 export type SubscriptionID = string;
+export type WehbookReceiptID = string;
 
 export enum SubscriptionStatus {
   Active = "active",
@@ -17,6 +18,31 @@ export interface Subscription {
   createdBy: UserID;
   webhookURL: string;
   status: SubscriptionStatus;
+  createdAt: UnixTimestamp;
+  updatedAt: UnixTimestamp;
+  deletedAt: UnixTimestamp | null;
+}
+
+export interface WebhookResponseData {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  url: string;
+}
+
+export interface ResponseError {
+  message: string;
+}
+
+export interface Receipt {
+  id: WehbookReceiptID;
+  subscriptionID: SubscriptionID;
+  kolID: KOLID;
+  userID: UserID;
+  response: WebhookResponseData | null;
+  error: ResponseError | null;
+  webhookPayload: WebhookPayload;
+  webhookHitAt: UnixTimestamp;
   createdAt: UnixTimestamp;
   updatedAt: UnixTimestamp;
   deletedAt: UnixTimestamp | null;
