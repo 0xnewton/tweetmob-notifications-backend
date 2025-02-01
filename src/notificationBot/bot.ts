@@ -122,15 +122,6 @@ export const initializeBot = (apiKey: string) => {
 
     ctx.reply("Looks interesting. Please give me a moment to set things up...");
 
-    // const user = await userService.getByTelegramID(ctx.from.id);
-    // logger.info("User details", { user });
-
-    // if (!user) {
-    //   logger.info("User not found", { ctx });
-    //   ctx.reply("I can't find your account details. Please try again.");
-    //   return;
-    // }
-
     let user: FetchResult<User>;
     try {
       user = await getUserFromContext(ctx);

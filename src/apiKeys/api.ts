@@ -47,3 +47,10 @@ export const getAPIKeyByHash = async (
   });
   return docs[0] || null;
 };
+
+export const getAPIKeyCount = async (userID: UserID): Promise<number> => {
+  const collection = apiKeysCollection(userID);
+  const aggCount = collection.count();
+  const snapshot = await aggCount.get();
+  return snapshot.data().count;
+};
