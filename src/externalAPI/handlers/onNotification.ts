@@ -26,6 +26,9 @@ export const onNotification = onRequest(
       return;
     }
 
+    response
+      .status(200)
+      .send({ success: true, message: "Notification received" });
     return;
   }
 );
