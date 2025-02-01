@@ -11,6 +11,7 @@ import { KOLService } from "../../kols/service";
 import { FetchResult } from "../../lib/types";
 import { Subscription } from "../types";
 import { isValidURL } from "../../lib/url";
+import { SubscriptionExistsError } from "../errors";
 
 const DEFAULT_MAX_SUB_COUNT = 50;
 
@@ -64,7 +65,9 @@ export const create = async (
   // Get or create the kol parent document
   if (existingSub) {
     logger.error("Subscription already exists", { params });
-    throw new Error("Subscription for that account already exists");
+    throw new SubscriptionExistsError(
+      "Subscription for that account already exists"
+    );
   }
 
   if (!existingKOL) {

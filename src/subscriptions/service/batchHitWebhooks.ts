@@ -11,7 +11,7 @@ import { KOL } from "../../kols/types";
 import { ParsedTweetLegacy } from "../../x/types";
 import { batch } from "../../lib/utils";
 import axios, { AxiosResponse } from "axios";
-import { TimeoutError } from "../utils";
+import { TimeoutError } from "../errors";
 
 export interface HitWebhooksResponse {
   webhookPayload: WebhookPayload;
@@ -61,7 +61,6 @@ export const hitWebhooks = async (
       return subData;
     })
     .filter(<T>(sub: T | null): sub is T => sub !== null);
-  // .filter((sub) => sub !== null);
 
   // Hit all their webhooks
   const batches = batch(enhancedSubData, maxConcurrentRequests);
