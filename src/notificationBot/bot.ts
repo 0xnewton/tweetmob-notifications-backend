@@ -12,6 +12,7 @@ import { FetchResult } from "../lib/types";
 import { User } from "../users/types";
 
 enum Commands {
+  start = "start",
   generate_api_key = "generate_api_key",
   subscribe = "subscribe",
   help = "help",
@@ -169,6 +170,7 @@ export const initializeBot = (apiKey: string) => {
   bot.command(Commands.help, (ctx) => {
     ctx.reply(
       "Available commands:\n\n" +
+        `/${Commands.start} - Register your account\n` +
         `/${Commands.generate_api_key} - Generate a new API key\n` +
         `/${Commands.subscribe} @xHandle https://your-webhook-url.com - Subscribe to a Twitter handle\n` +
         `/${Commands.help} - Show this help message`
