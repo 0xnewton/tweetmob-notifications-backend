@@ -1,7 +1,12 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as express from "express";
 import * as cors from "cors";
-import { subscribe, unsubscribe, onNotification } from "./handlers";
+import {
+  subscribe,
+  unsubscribe,
+  onNotification,
+  demoWebhookHandler,
+} from "./handlers";
 import { apiKeyValidator } from "./middleware/apiKeyValidator";
 import { limiter, speedLimiter, handlerWrapper } from "./lib";
 import { privateAPIKey, rapidAPIKey } from "../lib/secrets";
@@ -18,20 +23,36 @@ app.use(
   })
 );
 app.set("trust proxy", 1); // Enables the rate limiting to work behind a proxy (like firebase functions)
-
-// Set up public api routes
-const publicRouter = express.Router();
-publicRouter.use(limiter);
-publicRouter.use(speedLimiter);
-publicRouter.use(apiKeyValidator);
-
-publicRouter.post("/v1/subscriptions", handlerWrapper(subscribe));
-publicRouter.delete("/v1/subscriptions", handlerWrapper(unsubscribe));
-
+const publicAuthenticatedRouter = express.Router();
+const dangerousPublicUnauthenticatedRouter = express.Router();
 const privateRouter = express.Router();
-privateRouter.use(privateAPIKeyValidator);
+app.use("/api", publicAuthenticatedRouter);
+app.use("/internal", privateRouter);
+app.use("/demo48572", dangerousPublicUnauthenticatedRouter);
 
+// Set up public api routes protected by user api keys
+publicAuthenticatedRouter.use(limiter);
+publicAuthenticatedRouter.use(speedLimiter);
+publicAuthenticatedRouter.use(apiKeyValidator);
+
+publicAuthenticatedRouter.post("/v1/subscriptions", handlerWrapper(subscribe));
+publicAuthenticatedRouter.delete(
+  "/v1/subscriptions",
+  handlerWrapper(unsubscribe)
+);
+
+// Routes for internal apis protected by internal API key
+privateRouter.use(privateAPIKeyValidator);
 privateRouter.post("/v1/notification", handlerWrapper(onNotification));
+
+// Public un-authenticated router - mostly for internal demos & testing
+dangerousPublicUnauthenticatedRouter.use(limiter);
+dangerousPublicUnauthenticatedRouter.use(speedLimiter);
+// Demo subscription webhook for internal testing
+dangerousPublicUnauthenticatedRouter.post(
+  "/demo/webhookHandler",
+  handlerWrapper(demoWebhookHandler)
+);
 
 export const api = onRequest(
   {

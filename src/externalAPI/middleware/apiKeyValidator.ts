@@ -20,7 +20,7 @@ export const apiKeyValidator = async (
     const { user } = await ApiKeys.validate(apiKey);
     req.user = user.data;
   } catch (err) {
-    logger.error("Error validating API key", { error: err });
+    logger.debug("Error validating API key", { error: err });
     res.status(401).send("Unauthorized");
     return;
   }
