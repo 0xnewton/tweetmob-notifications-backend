@@ -79,15 +79,19 @@ const processNotification = async (data: ParsedNotification) => {
   const handleToKOLDict: Record<XHandle, KOL> = {};
   const handleToXUserDict: Record<XHandle, XUser> = {};
   const xHandles = [...new Set(data.users.map(genXUserHandle))];
-  const userIDsToFetch = data.users.map((u) => u.id_str);
-  const [existingKOLs, userTweets] = await Promise.all([
+  const kolIDsToFetch = data.users.map((u) => u.id);
+  const [existingKOLs, kolTweets] = await Promise.all([
     bulkFetchKOLsByHandle(xHandles),
-    batchFetchUserTweets(userIDsToFetch),
+    batchFetchUserTweets(kolIDsToFetch),
   ]);
-  logger.info("Fetched user tweets", { userTweets, users: data.users });
+  logger.info("Fetched user tweets", { kolTweets, users: data.users });
+  if (kolTweets.length === 0) {
+    logger.debug("No tweets fetched", { kolTweets });
+    return;
+  }
 
   existingKOLs.forEach((dupe) => {
-    handleToKOLDict[dupe.data.id] = dupe.data;
+    handleToKOLDict[dupe.data.xHandle] = dupe.data;
   });
   data.users.forEach((user) => {
     const handle = genXUserHandle(user);
@@ -95,7 +99,7 @@ const processNotification = async (data: ParsedNotification) => {
   });
   const kolsToUpdate = extractKOLsFromUsers(data.users, handleToKOLDict);
   const userMostRecentTweets = extractUserMostRecentTweets(
-    userTweets,
+    kolTweets,
     data.users,
     handleToKOLDict
   );
@@ -237,7 +241,7 @@ const extractUserMostRecentTweets = (
           tweet.created_at &&
           new Date(tweet.created_at).getTime() === maxCreatedTime
       );
-      const xUser = xUsers.find((u) => u.id_str === t.userID);
+      const xUser = xUsers.find((u) => u.id === t.xUserID);
       if (!xUser) {
         logger.error("No user found for tweet", { tweet: t });
         return null;

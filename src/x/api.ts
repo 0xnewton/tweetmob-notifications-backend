@@ -2,16 +2,17 @@ import { logger } from "firebase-functions";
 import { rapidAPIKey } from "../lib/secrets";
 import { ParsedTweetLegacy, UserTweetRootObject } from "./types";
 import { batch } from "../lib/utils";
+import { XUserID } from "../kols/types";
 
 const DEFAULT_RECENT_TWEET_LIMIT_MINS = 5;
 const DEFAULT_MAX_TWEETS = 5;
 
 export interface BatchFetchUserTweetsResponse {
-  userID: string;
+  xUserID: XUserID;
   tweets: ParsedTweetLegacy[];
 }
 export const batchFetchUserTweets = async (
-  userIDs: string[],
+  userIDs: XUserID[],
   maxTweets = DEFAULT_MAX_TWEETS,
   recentTimeMins = DEFAULT_RECENT_TWEET_LIMIT_MINS
 ): Promise<BatchFetchUserTweetsResponse[]> => {
@@ -25,14 +26,14 @@ export const batchFetchUserTweets = async (
 
   for (const [batchIndex, batch] of userBatch.entries()) {
     const start = Date.now();
-    const promises = batch.map((userID) =>
-      fetchUserTweets(userID, maxTweets, recentTimeMins)
+    const promises = batch.map((xUserID) =>
+      fetchUserTweets(xUserID, maxTweets, recentTimeMins)
     );
     const intermediateResults = await Promise.all(promises);
 
     results.push(
       ...intermediateResults.map((tweets, idx) => ({
-        userID: batch[idx],
+        xUserID: batch[idx],
         tweets,
       }))
     );
@@ -49,13 +50,13 @@ export const batchFetchUserTweets = async (
 };
 
 export const fetchUserTweets = async (
-  userRestID: string,
+  xUserID: XUserID,
   maxTweets = DEFAULT_MAX_TWEETS,
   recentTimeMins = DEFAULT_RECENT_TWEET_LIMIT_MINS
 ): Promise<ParsedTweetLegacy[]> => {
-  logger.info("Fetching user tweets", { userRestID });
+  logger.info("Fetching user tweets", { xUserID, maxTweets, recentTimeMins });
   const apiKey = rapidAPIKey.value();
-  const url = `https://twitter135.p.rapidapi.com/v2/UserTweets/?id=${userRestID}&count=${maxTweets}`;
+  const url = `https://twitter135.p.rapidapi.com/v2/UserTweets/?id=${xUserID}&count=${maxTweets}`;
   const options = {
     method: "GET",
     headers: {
@@ -115,12 +116,18 @@ export const fetchUserTweets = async (
           }
         }
 
-        if (item && item.id_str && item.full_text && username) {
+        if (
+          item &&
+          item.id_str &&
+          item.full_text &&
+          username &&
+          item.user_id_str
+        ) {
           const payload = {
             ...item,
             url: `https://x.com/${username}/status/${item.id_str}`,
             preview: item.full_text,
-            userIdString: item.user_id_str || userRestID,
+            userIdString: item.user_id_str,
           };
           tweets.push(payload);
         }
@@ -131,7 +138,7 @@ export const fetchUserTweets = async (
     logger.error("An error occurred", {
       message: error?.message,
       stack: error?.stack,
-      userRestID,
+      xUserID,
     });
     return [];
   }

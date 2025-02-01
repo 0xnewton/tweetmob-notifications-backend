@@ -5,6 +5,7 @@ import { ParsedTweetLegacy } from "../x/types";
 export type KOLID = string;
 export type XHandle = string;
 export type TweetID = string;
+export type XUserID = number;
 
 export enum KOLStatus {
   Active = "active",
@@ -23,7 +24,7 @@ export interface XKOLSnapshot {
 export interface KOL {
   id: KOLID;
   xHandle: XHandle;
-  xUserID: number | null; // Only filled in on first notification
+  xUserID: XUserID | null; // Only filled in on first notification
   xUserIDStr: string | null; // Only filled in on first notification
   xScreenName: string | null;
   xName: string | null;
