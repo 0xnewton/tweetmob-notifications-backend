@@ -1,10 +1,12 @@
 import { db } from "../firebase";
 import { KOL, KOLID, KOLStatus, XHandle } from "../kols/types";
+import { MAX_IN_CLAUSE_LIMIT } from "../lib/firestore";
 import {
   getSubscriptionCollection,
   getSubscriptionCollectionGroup,
 } from "../lib/refs";
 import { FetchResult } from "../lib/types";
+import { batch } from "../lib/utils";
 import { UserID } from "../users/types";
 import { Subscription, SubscriptionStatus } from "./types";
 
@@ -46,9 +48,9 @@ export const createSubscription = async (
     createdBy: params.userID,
     webhookURL: params.webhookURL,
     status:
-      params.kol.status === KOLStatus.Active ?
-        SubscriptionStatus.Active :
-        SubscriptionStatus.Pending,
+      params.kol.status === KOLStatus.Active
+        ? SubscriptionStatus.Active
+        : SubscriptionStatus.Pending,
     createdAt: Date.now(),
     updatedAt: Date.now(),
     deletedAt: null,
@@ -60,6 +62,46 @@ export const createSubscription = async (
     data: body,
     ref: docRef,
   };
+};
+
+export const batchFetchKOLSubscriptions = async (
+  ids: KOLID[]
+): Promise<FetchResult<Subscription>[]> => {
+  const kolIDKey: keyof Subscription = "kolID";
+
+  // Break the ids array into chunks respecting the `in` clause limit
+  const idBatches = batch(ids, MAX_IN_CLAUSE_LIMIT);
+
+  // Use Promise.all to fetch all batches in parallel
+  const allResults = await Promise.all(
+    idBatches.map(async (idBatch) => {
+      const query = getSubscriptionCollectionGroup().where(
+        kolIDKey,
+        "in",
+        idBatch
+      );
+      const snapshot = await query.get();
+      return snapshot.docs.map((doc) => ({
+        data: doc.data(),
+        ref: doc.ref,
+      }));
+    })
+  );
+
+  // Flatten the results
+  return allResults.flat();
+};
+
+export const getKOLSubscriptions = async (
+  id: KOLID
+): Promise<FetchResult<Subscription>[]> => {
+  const kolIDKey: keyof Subscription = "kolID";
+  const query = getSubscriptionCollectionGroup().where(kolIDKey, "==", id);
+  const snapshot = await query.get();
+  const docs = snapshot.docs.map((doc) => {
+    return { data: doc.data(), ref: doc.ref };
+  });
+  return docs;
 };
 
 export const getInativeKOLSubscriptions = async (

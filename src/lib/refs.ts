@@ -4,7 +4,7 @@ import { APIKey } from "../apiKeys/types";
 import { db } from "../firebase";
 import { DBCollections } from "./types";
 import { Subscription } from "../subscriptions/types";
-import { KOL } from "../kols/types";
+import { KOL, KOLID, Tweet } from "../kols/types";
 
 export const apiKeysCollection = (
   userID: UserID
@@ -60,6 +60,12 @@ export const getKOLCollection = (): CollectionReference<KOL> => {
   return db.collection(DBCollections.KOLs) as CollectionReference<KOL>;
 };
 
-export const getKOLDocument = (kolID: string) => {
+export const getKOLDocument = (kolID: KOLID) => {
   return getKOLCollection().doc(kolID);
+};
+
+export const getTweetSubcollection = (kolID: KOLID) => {
+  return getKOLDocument(kolID).collection(
+    DBCollections.Tweets
+  ) as CollectionReference<Tweet>;
 };
