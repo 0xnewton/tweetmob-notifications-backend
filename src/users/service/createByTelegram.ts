@@ -6,6 +6,7 @@ import { FetchResult } from "../../lib/types";
 import { logger } from "firebase-functions";
 import { UserExistsError } from "../errors";
 import { CreateAPIKeyResponse } from "../../apiKeys/service/create";
+import { Context } from "telegraf";
 
 interface CreateUserParams {
   telegramUserID: TelegramUserID;
@@ -21,14 +22,19 @@ export interface CreateUserResponse {
 }
 
 export const createByTelegram = async (
-  params: CreateUserParams
+  params: CreateUserParams,
+  context: { tgContext?: Context }
 ): Promise<CreateUserResponse> => {
   logger.info("Create user service request hit", { params });
   const existingUser = await getUserByTelegramUserID(params.telegramUserID);
 
   if (existingUser) {
-    logger.error("User already exists", { params });
+    logger.debug("User already exists", { params });
     throw new UserExistsError("User already exists", existingUser.data);
+  }
+
+  if (context.tgContext) {
+    context.tgContext.reply("Give me a moment while I set up your account...");
   }
 
   // Create user
@@ -44,6 +50,9 @@ export const createByTelegram = async (
   // Create API Key
   let apiKey: CreateAPIKeyResponse | null = null;
   if (params.makeAPIKey) {
+    if (context.tgContext) {
+      context.tgContext.reply("Now I'll generate you an API key...");
+    }
     apiKey = await ApiKeys.create({ userID: user.data.id });
   }
 

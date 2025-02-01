@@ -3,6 +3,7 @@ import { User } from "../users/types";
 import { logger } from "firebase-functions";
 import { userService } from "../users/service";
 import { FetchResult } from "../lib/types";
+import { TGUserNotFoundError } from "../users/errors";
 
 export const getUserFromContext = async (
   context: Context
@@ -24,9 +25,7 @@ export const getUserFromContext = async (
 
   if (!user) {
     logger.info("User not found", { context });
-    throw new Error(
-      "User not found. Please try again or run the /start command."
-    );
+    throw new TGUserNotFoundError("User not found", context.from.id);
   }
 
   logger.info("User details", { user });

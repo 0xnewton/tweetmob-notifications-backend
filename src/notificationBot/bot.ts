@@ -38,23 +38,27 @@ export const initializeBot = (apiKey: string) => {
 
     // Check if user exists
     try {
-      ctx.reply("Give me a moment while I set up your account...");
-      await userService.createByTelegram({
-        telegramUserID: userID,
-        telegramUsername: userName,
-        telegramChatID: chatID,
-        makeAPIKey: false,
-      });
+      await userService.createByTelegram(
+        {
+          telegramUserID: userID,
+          telegramUsername: userName,
+          telegramChatID: chatID,
+          makeAPIKey: false,
+        },
+        { tgContext: ctx }
+      );
     } catch (err) {
       if (err instanceof UserExistsError) {
         // User already exists
         logger.info("User already exists", { ctx });
-        ctx.reply("Oh, I've seen you before. Welcome back!");
       } else {
         logger.error("Error creating user", { ctx, err });
         ctx.reply("Something went wrong. Please try again.");
       }
+      return;
     }
+
+    ctx.reply("Your account has been set up successfully!");
   });
 
   bot.command(Commands.generate_api_key, async (ctx) => {
