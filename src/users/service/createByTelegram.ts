@@ -5,17 +5,19 @@ import { ApiKeys } from "../../apiKeys/service";
 import { FetchResult } from "../../lib/types";
 import { logger } from "firebase-functions";
 import { UserExistsError } from "../errors";
+import { CreateAPIKeyResponse } from "../../apiKeys/service/create";
 
 interface CreateUserParams {
   telegramUserID: TelegramUserID;
   telegramUsername: string;
   telegramChatID: number;
+  makeAPIKey?: boolean;
 }
 
 export interface CreateUserResponse {
   user: FetchResult<User>;
-  apiKey: FetchResult<APIKey>;
-  rawAPIKey: string;
+  apiKey?: FetchResult<APIKey>;
+  rawAPIKey?: string;
 }
 
 export const createByTelegram = async (
@@ -40,11 +42,14 @@ export const createByTelegram = async (
   });
 
   // Create API Key
-  const apiKey = await ApiKeys.create({ userID: user.data.id });
+  let apiKey: CreateAPIKeyResponse | null = null;
+  if (params.makeAPIKey) {
+    apiKey = await ApiKeys.create({ userID: user.data.id });
+  }
 
   return {
     user,
-    apiKey: apiKey.stored,
-    rawAPIKey: apiKey.key,
+    apiKey: apiKey?.stored,
+    rawAPIKey: apiKey?.key,
   };
 };

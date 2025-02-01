@@ -57,7 +57,7 @@ export interface XTweet {
 
 interface TweetEntities {
   hashtags?: Hashtag[];
-  symbols?: Symbol[];
+  symbols?: SymbolType[];
   user_mentions?: UserMention[];
   urls?: Url[];
 }
@@ -67,7 +67,7 @@ interface Hashtag {
   indices: [number, number];
 }
 
-interface Symbol {
+interface SymbolType {
   text: string;
   indices: [number, number];
 }

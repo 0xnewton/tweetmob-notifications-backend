@@ -5,13 +5,17 @@ import { UserID } from "../../users/types";
 import { createAPIKey, getAPIKeyByHash } from "../api";
 import { APIKey } from "../types";
 
-interface CreateAPIKeyParams {
+export interface CreateAPIKeyParams {
   userID: UserID;
 }
 
+export interface CreateAPIKeyResponse {
+  stored: FetchResult<APIKey>;
+  key: string;
+}
 export const create = async (
   params: CreateAPIKeyParams
-): Promise<{ stored: FetchResult<APIKey>; key: string }> => {
+): Promise<CreateAPIKeyResponse> => {
   logger.info("Create API service request hit", { params });
   const key = generateAPIKey();
   const hash = hashWithSHA512(key);

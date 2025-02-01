@@ -6,13 +6,15 @@ import { SubscriptionService } from "../subscriptions/service";
 import { Subscription, SubscriptionStatus } from "../subscriptions/types";
 import { formatXHandle, isValidXHandle, parseXHandle } from "../lib/x";
 import { isValidURL } from "../lib/url";
-
-type SessionData = Context;
+import { ApiKeys } from "../apiKeys/service";
+import { getUserFromContext } from "./utils";
+import { FetchResult } from "../lib/types";
+import { User } from "../users/types";
 
 export const initializeBot = (apiKey: string) => {
-  const bot = new Telegraf<SessionData>(apiKey);
+  const bot = new Telegraf<Context>(apiKey);
 
-  bot.start(async (ctx: SessionData) => {
+  bot.start(async (ctx: Context) => {
     logger.info("Start command received", { ctx });
     const userID = ctx.from?.id;
     const userName = ctx.from?.username;
@@ -44,6 +46,30 @@ export const initializeBot = (apiKey: string) => {
         ctx.reply("Something went wrong. Please try again.");
       }
     }
+  });
+
+  bot.command("generateApiKey", async (ctx) => {
+    logger.info("API key generation command received", { ctx });
+
+    let user: FetchResult<User>;
+    try {
+      user = await getUserFromContext(ctx);
+    } catch (err: any) {
+      logger.error("Error fetching user", { ctx, err });
+      ctx.reply(err?.message || "Something went wrong.");
+      return;
+    }
+
+    try {
+      const apiKey = await ApiKeys.create({ userID: user.data.id });
+      ctx.reply(
+        `Your API key is:\n\`${apiKey.key}\`\n\nKeep it safe! We will never show it to you again.`
+      );
+    } catch (err) {
+      logger.error("Error creating API key", { ctx, err });
+      ctx.reply("Something went wrong. Please try again.");
+    }
+    return;
   });
 
   bot.command("subscribe", async (ctx) => {

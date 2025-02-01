@@ -54,9 +54,14 @@ export const hitWebhooks = async (
       if (!userTweet) {
         return null;
       }
-      return { userTweet, subscription: sub.data };
+      const subData: EnhancedSubscription = {
+        userTweet,
+        subscription: sub.data,
+      };
+      return subData;
     })
-    .filter((sub) => sub !== null);
+    .filter(<T>(sub: T | null): sub is T => sub !== null);
+  // .filter((sub) => sub !== null);
 
   // Hit all their webhooks
   const batches = batch(enhancedSubData, maxConcurrentRequests);

@@ -1,5 +1,5 @@
 import { UnixTimestamp, WebhookPayload } from "../lib/types";
-import { KOLID, TweetID, XHandle } from "../kols/types";
+import { KOLID, XHandle } from "../kols/types";
 import { UserID } from "../users/types";
 
 export type SubscriptionID = string;
