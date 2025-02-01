@@ -127,6 +127,12 @@ export const initializeBot = (apiKey: string) => {
     try {
       user = await getUserFromContext(ctx);
     } catch (err: any) {
+      if (err instanceof UserExistsError) {
+        ctx.reply(
+          "You are not registered. Please use /start to register before running this command."
+        );
+        return;
+      }
       logger.error("Error fetching user", { ctx, err });
       ctx.reply(err?.message || "Something went wrong.");
       return;

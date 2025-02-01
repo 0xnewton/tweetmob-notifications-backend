@@ -23,27 +23,27 @@ app.use(
   })
 );
 app.set("trust proxy", 1); // Enables the rate limiting to work behind a proxy (like firebase functions)
-const publicAuthenticatedRouter = express.Router();
+const publicAuthenticatedRouterV1 = express.Router();
 const dangerousPublicUnauthenticatedRouter = express.Router();
 const privateRouter = express.Router();
-app.use("/api", publicAuthenticatedRouter);
-app.use("/internal", privateRouter);
+app.use("/v1", publicAuthenticatedRouterV1);
+app.use("/internal/v1", privateRouter);
 app.use("/demo48572", dangerousPublicUnauthenticatedRouter);
 
 // Set up public api routes protected by user api keys
-publicAuthenticatedRouter.use(limiter);
-publicAuthenticatedRouter.use(speedLimiter);
-publicAuthenticatedRouter.use(apiKeyValidator);
+publicAuthenticatedRouterV1.use(limiter);
+publicAuthenticatedRouterV1.use(speedLimiter);
+publicAuthenticatedRouterV1.use(apiKeyValidator);
 
-publicAuthenticatedRouter.post("/v1/subscriptions", handlerWrapper(subscribe));
-publicAuthenticatedRouter.delete(
-  "/v1/subscriptions",
+publicAuthenticatedRouterV1.post("/subscriptions", handlerWrapper(subscribe));
+publicAuthenticatedRouterV1.delete(
+  "/subscriptions",
   handlerWrapper(unsubscribe)
 );
 
 // Routes for internal apis protected by internal API key
 privateRouter.use(privateAPIKeyValidator);
-privateRouter.post("/v1/notification", handlerWrapper(onNotification));
+privateRouter.post("/notification", handlerWrapper(onNotification));
 
 // Public un-authenticated router - mostly for internal demos & testing
 dangerousPublicUnauthenticatedRouter.use(limiter);
