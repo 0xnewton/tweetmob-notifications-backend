@@ -1,0 +1,527 @@
+openapi: "3.0.0"
+info:
+  title: Tweetmob Notification API
+  version: "1.0.0"
+  description: |
+    Welcome to the Tweetmob Notification API.
+
+    Subscriptions allow you to receive notifications when X accounts post.
+    Use this API for CRUD operations on subscriptions. When an account posts,
+    you'll receive a POST request at the webhook URL you provide.
+
+    **Authentication:**
+    All endpoints require a valid API key provided in the request header `x-api-key`.
+    The API key is validated before processing any request. If the API key is missing or invalid,
+    a 401 Unauthorized response is returned. Get your API key via the telegram bot [@TweetMobNotifications_bot](https://t.me/TweetMobNotifications_bot).
+
+    Your webhooks will receive a POST request with a payload of type [WebhookPayload](#/components/schemas/WebhookPayload).
+
+servers:
+  - url: https://externalapi-qzvlzsqjjq-uc.a.run.app/v1
+
+paths:
+  /subscriptions:
+    post:
+      summary: Create Subscription
+      description: Create a new subscription.
+      tags:
+        - Subscriptions
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscribePayload"
+      responses:
+        "200":
+          description: Subscription created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscribeResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests.
+    get:
+      summary: List Subscriptions
+      description: Retrieve a paginated list of subscriptions.
+      tags:
+        - Subscriptions
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            example: 20
+          description: Maximum number of subscriptions to return.
+        - in: query
+          name: cursor
+          schema:
+            type: string
+          description: Cursor for pagination.
+      responses:
+        "200":
+          description: A list of subscriptions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListSubscriptionsAPIResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests.
+
+  /subscriptions/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: The subscription ID.
+    get:
+      summary: Get Subscription
+      description: Retrieve a single subscription by ID.
+      tags:
+        - Subscriptions
+      security:
+        - apiKeyAuth: []
+      responses:
+        "200":
+          description: Subscription retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetSubscriptionResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests.
+    delete:
+      summary: Delete Subscription
+      description: Delete (unsubscribe) a subscription.
+      tags:
+        - Subscriptions
+      security:
+        - apiKeyAuth: []
+      responses:
+        "200":
+          description: Subscription deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnsubscribeResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests.
+    post:
+      summary: Edit Subscription
+      description: Edit an existing subscription.
+      tags:
+        - Subscriptions
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditPayload"
+      responses:
+        "200":
+          description: Subscription updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EditResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests.
+
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: |
+        Provide your API key in the `x-api-key` header to authenticate your requests.
+
+  schemas:
+    # ----- Subscription Models -----
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: string
+        kolID:
+          type: string
+        xHandle:
+          type: string
+        createdBy:
+          type: string
+        webhookURL:
+          type: string
+          format: uri
+        status:
+          type: string
+          enum:
+            - active
+            - pending
+            - deleted
+        createdAt:
+          type: integer
+          description: Unix timestamp in milliseconds.
+        updatedAt:
+          type: integer
+          description: Unix timestamp in milliseconds.
+        deletedAt:
+          type: integer
+          nullable: true
+          description: Unix timestamp in milliseconds or null.
+        apiMetadata:
+          type: object
+          additionalProperties:
+            oneOf:
+              - type: number
+              - type: string
+          nullable: true
+
+    SubscribePayload:
+      type: object
+      required:
+        - webhookURL
+        - xHandle
+      properties:
+        webhookURL:
+          type: string
+          format: uri
+        xHandle:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            oneOf:
+              - type: number
+              - type: string
+          nullable: true
+
+    EditPayload:
+      type: object
+      required:
+        - webhookURL
+      properties:
+        webhookURL:
+          type: string
+          format: uri
+        metadata:
+          type: object
+          additionalProperties:
+            oneOf:
+              - type: number
+              - type: string
+          nullable: true
+
+    SubscribeResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Subscription"
+        message:
+          type: string
+
+    UnsubscribeResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Subscription"
+        message:
+          type: string
+
+    GetSubscriptionResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Subscription"
+
+    ListSubscriptionsAPIResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Subscription"
+        cursor:
+          type: string
+          nullable: true
+        hasNextPage:
+          type: boolean
+        limit:
+          type: integer
+
+    EditResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Subscription"
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    # ----- Webhook Payload Models -----
+    WebhookPayload:
+      type: object
+      description: |
+        This payload is sent as a POST request to your webhook URL when a subscribed account posts.
+        It contains the tweet data and user details.
+      properties:
+        tweet:
+          $ref: "#/components/schemas/Tweet"
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+            xHandle:
+              type: string
+            xUserID:
+              type: integer
+              nullable: true
+            xUserIDStr:
+              type: string
+              nullable: true
+            xScreenName:
+              type: string
+              nullable: true
+            xName:
+              type: string
+              nullable: true
+          required:
+            - id
+            - xHandle
+
+    Tweet:
+      allOf:
+        - $ref: "#/components/schemas/TweetLegacy"
+        - type: object
+          properties:
+            url:
+              type: string
+            userIdString:
+              type: string
+
+    TweetLegacy:
+      type: object
+      properties:
+        user_id_str:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          nullable: true
+        full_text:
+          type: string
+          nullable: true
+        id_str:
+          type: string
+          nullable: true
+        favorite_count:
+          type: number
+          nullable: true
+        retweet_count:
+          type: number
+          nullable: true
+        entities:
+          type: object
+          properties:
+            media:
+              type: array
+              items:
+                $ref: "#/components/schemas/MediaEntity"
+              nullable: true
+            user_mentions:
+              type: array
+              items:
+                $ref: "#/components/schemas/UserMention"
+              nullable: true
+            urls:
+              type: array
+              items:
+                $ref: "#/components/schemas/UrlEntity"
+              nullable: true
+        extended_entities:
+          type: object
+          properties:
+            media:
+              type: array
+              items:
+                $ref: "#/components/schemas/MediaEntity"
+              nullable: true
+
+    MediaEntity:
+      type: object
+      properties:
+        display_url:
+          type: string
+          nullable: true
+        expanded_url:
+          type: string
+          nullable: true
+        id_str:
+          type: string
+          nullable: true
+        media_url_https:
+          type: string
+          nullable: true
+        type:
+          type: string
+          enum:
+            - photo
+            - video
+            - animated_gif
+          nullable: true
+        url:
+          type: string
+          nullable: true
+        features:
+          type: object
+          additionalProperties: true
+          nullable: true
+        sizes:
+          type: object
+          properties:
+            thumb:
+              $ref: "#/components/schemas/MediaSize"
+            large:
+              $ref: "#/components/schemas/MediaSize"
+            medium:
+              $ref: "#/components/schemas/MediaSize"
+            small:
+              $ref: "#/components/schemas/MediaSize"
+          nullable: true
+        original_info:
+          type: object
+          properties:
+            height:
+              type: number
+              nullable: true
+            width:
+              type: number
+              nullable: true
+          nullable: true
+        video_info:
+          type: object
+          properties:
+            aspect_ratio:
+              type: array
+              items:
+                type: number
+              minItems: 2
+              maxItems: 2
+              nullable: true
+            duration_millis:
+              type: number
+              nullable: true
+            variants:
+              type: array
+              items:
+                $ref: "#/components/schemas/Variant"
+              nullable: true
+          nullable: true
+
+    MediaSize:
+      type: object
+      properties:
+        h:
+          type: number
+          nullable: true
+        w:
+          type: number
+          nullable: true
+        resize:
+          type: string
+          enum:
+            - crop
+            - fit
+          nullable: true
+
+    Variant:
+      type: object
+      properties:
+        bitrate:
+          type: number
+          nullable: true
+        content_type:
+          type: string
+          nullable: true
+        url:
+          type: string
+          nullable: true
+
+    UrlEntity:
+      type: object
+      properties:
+        display_url:
+          type: string
+          nullable: true
+        expanded_url:
+          type: string
+          nullable: true
+        url:
+          type: string
+          nullable: true
+        indices:
+          type: array
+          items:
+            type: number
+          nullable: true
+
+    UserMention:
+      type: object
+      properties:
+        id_str:
+          type: string
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        screen_name:
+          type: string
+          nullable: true
+        indices:
+          type: array
+          items:
+            type: number
+          nullable: true

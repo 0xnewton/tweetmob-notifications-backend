@@ -14,6 +14,8 @@ import { limiter, speedLimiter, handlerWrapper } from "./lib";
 import { privateAPIKey, rapidAPIKey } from "../lib/secrets";
 import { privateAPIKeyValidator } from "./middleware/privateAPIKeyValidator";
 import { editSubscription } from "./handlers/editSubscription";
+import { apiDocs } from "./handlers/apiDocs";
+import * as swaggerUi from "swagger-ui-express";
 
 const app = express();
 
@@ -29,9 +31,11 @@ app.set("trust proxy", 1); // Enables the rate limiting to work behind a proxy (
 const publicAuthenticatedRouterV1 = express.Router();
 const dangerousPublicUnauthenticatedRouter = express.Router();
 const privateRouter = express.Router();
+const docsRouter = express.Router();
 app.use("/v1", publicAuthenticatedRouterV1);
 app.use("/internal/v1", privateRouter);
-app.use("/demo48572", dangerousPublicUnauthenticatedRouter);
+app.use("/public", dangerousPublicUnauthenticatedRouter);
+app.use("/docs", docsRouter);
 
 // Set up public api routes protected by user api keys
 publicAuthenticatedRouterV1.use(limiter);
@@ -69,6 +73,9 @@ dangerousPublicUnauthenticatedRouter.post(
   "/webhookHandler",
   handlerWrapper(demoWebhookHandler)
 );
+
+// API Docs
+docsRouter.use("/", swaggerUi.serve, apiDocs());
 
 export const api = onRequest(
   {
