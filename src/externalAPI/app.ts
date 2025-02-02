@@ -80,7 +80,7 @@ dangerousPublicUnauthenticatedRouter.post(
 );
 
 // API Docs
-docsRouter.use("/", swaggerUi.serve, apiDocs());
+docsRouter.use("", swaggerUi.serve, apiDocs());
 
 export const api = onRequest(
   {
