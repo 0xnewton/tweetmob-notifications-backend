@@ -17,7 +17,7 @@ interface EditSubscriptionParams {
 
 interface EditSubscriptionPayload {
   webhookURL?: string;
-  apiMetadata?: SubscriptionAPIMetadata;
+  apiMetadata?: SubscriptionAPIMetadata | null;
 }
 
 interface CallerContext {

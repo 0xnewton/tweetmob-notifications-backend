@@ -136,7 +136,7 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "429":
           description: Too many requests.
-    post:
+    patch:
       summary: Edit Subscription
       description: Edit an existing subscription.
       tags:

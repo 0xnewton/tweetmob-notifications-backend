@@ -192,9 +192,22 @@ interface EditSubscriptionParams {
 export const editSubscription = async (
   params: EditSubscriptionParams
 ): Promise<FetchResult<Subscription> | null> => {
+  // remove any fields that are undefined as they will be ignored.
+  // to delete the fields, use null instead
+
+  const payload = { ...params.payload };
+
+  Object.entries(params.payload).forEach(([key, value]) => {
+    if (value === undefined && key in payload) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      delete payload[key];
+    }
+  });
+
   const doc = getSubscriptionDocument(params.userID, params.id);
   const body: UpdateData<Subscription> = {
-    ...params.payload,
+    ...payload,
     updatedAt: Date.now(),
   };
   await doc.update(body);

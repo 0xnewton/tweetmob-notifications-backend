@@ -45,20 +45,23 @@ publicAuthenticatedRouterV1.use(speedLimiter);
 publicAuthenticatedRouterV1.use(apiKeyValidator);
 
 // Main API Routes
-publicAuthenticatedRouterV1.post("/subscriptions", handlerWrapper(subscribe));
+publicAuthenticatedRouterV1.post(
+  "/subscriptions",
+  handlerWrapper(subscribe<SubscriptionV1>(convertSubscriptionV1))
+);
 publicAuthenticatedRouterV1.delete(
   "/subscriptions/:id",
-  handlerWrapper(unsubscribe)
+  handlerWrapper(unsubscribe<SubscriptionV1>(convertSubscriptionV1))
 );
 publicAuthenticatedRouterV1.get(
   "/subscriptions/:id",
-  handlerWrapper(getSubscription)
+  handlerWrapper(getSubscription<SubscriptionV1>(convertSubscriptionV1))
 );
 publicAuthenticatedRouterV1.get(
   "/subscriptions",
-  handlerWrapper(listSubscriptions)
+  handlerWrapper(listSubscriptions<SubscriptionV1>(convertSubscriptionV1))
 );
-publicAuthenticatedRouterV1.post(
+publicAuthenticatedRouterV1.patch(
   "/subscriptions/:id",
   handlerWrapper(editSubscription<SubscriptionV1>(convertSubscriptionV1))
 );
