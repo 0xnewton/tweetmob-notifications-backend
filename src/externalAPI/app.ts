@@ -6,11 +6,14 @@ import {
   unsubscribe,
   onNotification,
   demoWebhookHandler,
+  getSubscription,
+  listSubscriptions,
 } from "./handlers";
 import { apiKeyValidator } from "./middleware/apiKeyValidator";
 import { limiter, speedLimiter, handlerWrapper } from "./lib";
 import { privateAPIKey, rapidAPIKey } from "../lib/secrets";
 import { privateAPIKeyValidator } from "./middleware/privateAPIKeyValidator";
+import { editSubscription } from "./handlers/editSubscription";
 
 const app = express();
 
@@ -35,10 +38,23 @@ publicAuthenticatedRouterV1.use(limiter);
 publicAuthenticatedRouterV1.use(speedLimiter);
 publicAuthenticatedRouterV1.use(apiKeyValidator);
 
+// Main API Routes
 publicAuthenticatedRouterV1.post("/subscriptions", handlerWrapper(subscribe));
 publicAuthenticatedRouterV1.delete(
-  "/subscriptions",
+  "/subscriptions/:id",
   handlerWrapper(unsubscribe)
+);
+publicAuthenticatedRouterV1.get(
+  "/subscriptions/:id",
+  handlerWrapper(getSubscription)
+);
+publicAuthenticatedRouterV1.get(
+  "/subscriptions",
+  handlerWrapper(listSubscriptions)
+);
+publicAuthenticatedRouterV1.post(
+  "/subscriptions/:id",
+  handlerWrapper(editSubscription)
 );
 
 // Routes for internal apis protected by internal API key

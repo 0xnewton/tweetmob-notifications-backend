@@ -11,6 +11,8 @@ export enum SubscriptionStatus {
   Deleted = "deleted",
 }
 
+export type SubscriptionAPIMetadata = Record<string, number | string>;
+
 export interface Subscription {
   id: SubscriptionID;
   kolID: KOLID;
@@ -21,6 +23,7 @@ export interface Subscription {
   createdAt: UnixTimestamp;
   updatedAt: UnixTimestamp;
   deletedAt: UnixTimestamp | null;
+  apiMetadata: SubscriptionAPIMetadata | null;
 }
 
 export interface WebhookResponseData {

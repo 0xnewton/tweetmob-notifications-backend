@@ -1,16 +1,17 @@
 import { logger } from "firebase-functions";
 import { onRequest } from "firebase-functions/v2/https";
 import { APIRequest, APIResponse } from "../types";
-import { z } from "zod";
 import { SubscriptionService } from "../../subscriptions/service";
-import { SubscriptionExistsError } from "../../subscriptions/errors";
-import { subscriptionAPIMetadataSchema } from "./schemas";
 import { Subscription } from "../../subscriptions/types";
+import { subscriptionAPIMetadataSchema } from "./schemas";
+import { z } from "zod";
+import { SubscriptionNotFoundError } from "../../subscriptions/errors";
 
-export const subscribe = onRequest(
-  async (request: APIRequest, response: APIResponse): Promise<void> => {
+export const editSubscription = onRequest(
+  async (request: APIRequest, response: APIResponse) => {
+    logger.info("Edit Subscription event handler", { request, response });
     const user = request.user;
-    logger.info("Subscribe event handler", { user });
+    const subscriptionID = request.params.id;
 
     if (!user) {
       logger.debug("User not found", { request });
@@ -18,11 +19,16 @@ export const subscribe = onRequest(
       return;
     }
 
+    if (!subscriptionID || typeof subscriptionID !== "string") {
+      logger.debug("Subscription ID not found", { request });
+      response.status(400).send("Invalid subscription ID");
+      return;
+    }
+
     let webhookURL;
-    let xHandle;
     let metadata;
     try {
-      ({ webhookURL, xHandle, metadata } = Payload.parse(request.body));
+      ({ webhookURL, metadata } = Payload.parse(request.body));
     } catch (err: any) {
       logger.debug("Invalid payload", {
         request,
@@ -32,27 +38,29 @@ export const subscribe = onRequest(
       return;
     }
     try {
-      const subscriptionResult = await SubscriptionService.create(
+      const subscriptionResult = await SubscriptionService.edit(
         {
-          webhookURL,
-          xHandle,
-          apiMetadata: metadata,
+          id: subscriptionID,
+          payload: {
+            webhookURL,
+            apiMetadata: metadata,
+          },
         },
         {
           user,
         }
       );
-      const result: SubscribeResponse = {
+      const result: EditResponse = {
         data: subscriptionResult.data,
-        message: "Successfully subscribed",
+        message: "Successfully edited subscription",
       };
       response.status(201).send(result);
     } catch (err: any) {
-      logger.error("Error creating subscription", {
+      logger.error("Error editing subscription", {
         errDetails: err?.message || "",
       });
-      if (err instanceof SubscriptionExistsError) {
-        response.status(400).send("Subscription already exists");
+      if (err instanceof SubscriptionNotFoundError) {
+        response.status(404).send("Subscription not found");
       } else {
         response.status(500).send("Something went wrong. Please try again.");
       }
@@ -62,15 +70,12 @@ export const subscribe = onRequest(
   }
 );
 
-interface SubscribeResponse {
+interface EditResponse {
   data: Subscription;
   message: string;
 }
 
 const Payload = z.object({
   webhookURL: z.string(),
-  xHandle: z.string(),
   metadata: subscriptionAPIMetadataSchema,
 });
-
-type Payload = z.infer<typeof Payload>;

@@ -43,6 +43,20 @@
       ]
     },
     {
+      "collectionGroup": "Subscriptions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "deletedAt",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "xHandle",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "KOLs",
       "queryScope": "COLLECTION",
       "fields": [

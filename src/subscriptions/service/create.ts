@@ -9,7 +9,7 @@ import { parseXHandle, isValidXHandle } from "../../lib/x";
 import { getKOLByXHandle } from "../../kols/api";
 import { KOLService } from "../../kols/service";
 import { FetchResult } from "../../lib/types";
-import { Subscription } from "../types";
+import { Subscription, SubscriptionAPIMetadata } from "../types";
 import { isValidURL } from "../../lib/url";
 import { SubscriptionExistsError } from "../errors";
 
@@ -18,6 +18,7 @@ const DEFAULT_MAX_SUB_COUNT = 500;
 interface CreateSubscriptionParams {
   webhookURL: string;
   xHandle: string;
+  apiMetadata?: SubscriptionAPIMetadata;
 }
 
 interface CallerContext {
@@ -83,6 +84,7 @@ export const create = async (
     kol: existingKOL.data,
     userID: context.user.id,
     webhookURL: params.webhookURL,
+    apiMetadata: params.apiMetadata,
   });
 
   return sub;

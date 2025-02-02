@@ -11,3 +11,10 @@ export class SubscriptionExistsError extends Error {
     this.name = "SubscriptionExistsError";
   }
 }
+
+export class SubscriptionNotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SubscriptionNotFoundError";
+  }
+}

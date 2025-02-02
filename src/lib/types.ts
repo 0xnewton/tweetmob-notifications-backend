@@ -34,3 +34,10 @@ export interface WebhookPayload {
     xName: string | null;
   };
 }
+
+export type PaginatedResults<T> = {
+  data: T[];
+  cursor: string | null;
+  hasNextPage: boolean;
+  limit: number;
+};

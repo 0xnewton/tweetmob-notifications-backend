@@ -1,14 +1,21 @@
+import { UpdateData } from "firebase-admin/firestore";
 import { db } from "../firebase";
 import { KOL, KOLID, KOLStatus, XHandle } from "../kols/types";
 import { MAX_IN_CLAUSE_LIMIT } from "../lib/firestore";
 import {
   getSubscriptionCollection,
   getSubscriptionCollectionGroup,
+  getSubscriptionDocument,
 } from "../lib/refs";
 import { FetchResult } from "../lib/types";
 import { batch } from "../lib/utils";
 import { UserID } from "../users/types";
-import { Subscription, SubscriptionStatus } from "./types";
+import {
+  Subscription,
+  SubscriptionAPIMetadata,
+  SubscriptionID,
+  SubscriptionStatus,
+} from "./types";
 
 interface GetSubscriptionByXHandleParams {
   xHandle: XHandle;
@@ -34,6 +41,7 @@ interface CreateSubscriptionParams {
   userID: UserID;
   webhookURL: string;
   kol: KOL;
+  apiMetadata?: SubscriptionAPIMetadata;
 }
 export const createSubscription = async (
   params: CreateSubscriptionParams
@@ -53,6 +61,9 @@ export const createSubscription = async (
     createdAt: Date.now(),
     updatedAt: Date.now(),
     deletedAt: null,
+    apiMetadata: params.apiMetadata
+      ? parseAPIMetadata(params.apiMetadata)
+      : null,
   };
 
   await docRef.create(body);
@@ -146,4 +157,57 @@ export const getUserSubCount = async (userID: UserID): Promise<number> => {
 
   // The result is available in snapshot.data().count
   return snapshot.data().count;
+};
+
+export const parseAPIMetadata = (payload: unknown): SubscriptionAPIMetadata => {
+  if (
+    typeof payload !== "object" ||
+    payload === null ||
+    Array.isArray(payload)
+  ) {
+    return {};
+  }
+
+  const metadata: SubscriptionAPIMetadata = {};
+
+  for (const [key, value] of Object.entries(payload)) {
+    if (typeof value === "string" || typeof value === "number") {
+      metadata[key] = value;
+    }
+  }
+
+  return metadata;
+};
+
+type EditSubscriptionPayload = Pick<
+  UpdateData<Subscription>,
+  "deletedAt" | "updatedAt" | "webhookURL" | "apiMetadata"
+>;
+
+interface EditSubscriptionParams {
+  id: SubscriptionID;
+  userID: UserID;
+  payload: EditSubscriptionPayload;
+}
+export const editSubscription = async (
+  params: EditSubscriptionParams
+): Promise<FetchResult<Subscription> | null> => {
+  const doc = getSubscriptionDocument(params.userID, params.id);
+  const body: UpdateData<Subscription> = {
+    ...params.payload,
+    updatedAt: Date.now(),
+  };
+  await doc.update(body);
+
+  const snapshot = await doc.get();
+  const data = snapshot.data();
+
+  if (!snapshot.exists || !data) {
+    return null;
+  }
+
+  return {
+    data,
+    ref: snapshot.ref,
+  };
 };
