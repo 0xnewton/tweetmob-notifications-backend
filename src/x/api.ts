@@ -131,10 +131,9 @@ export const fetchUserTweets = async (
           username &&
           item.user_id_str
         ) {
-          const payload = {
+          const payload: ParsedTweetLegacy = {
             ...item,
             url: `https://x.com/${username}/status/${item.id_str}`,
-            preview: item.full_text,
             userIdString: item.user_id_str,
           };
           logger.info("Adding tweet", payload);

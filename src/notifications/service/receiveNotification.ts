@@ -85,12 +85,31 @@ const processNotification = async (data: ParsedNotification) => {
   const handleToXUserDict: Record<XHandle, XUser> = {};
   const xHandles = [...new Set(data.users.map(genXUserHandle))];
   logger.info("All x handles to fetch", { xHandles });
-  const kolsToProcess = await bulkFetchKOLsByHandle(xHandles);
-  if (kolsToProcess.length === 0) {
+  const allKOLs = await bulkFetchKOLsByHandle(xHandles);
+  if (allKOLs.length === 0) {
     logger.info("No KOLs found for x handles", { xHandles });
     return;
   }
+  const kolsToProcess = allKOLs.filter((data) =>
+    validateKOLLastPostSeen(data.data)
+  );
 
+  if (kolsToProcess.length === 0) {
+    logger.info("No KOLs to process -- all rejected from lastPostSeenTime", {
+      kolsToProcess,
+    });
+    return;
+  }
+
+  kolsToProcess.forEach((dupe) => {
+    handleToKOLDict[dupe.data.xHandle] = dupe.data;
+  });
+  data.users.forEach((user) => {
+    const handle = genXUserHandle(user);
+    handleToXUserDict[handle] = user;
+  });
+
+  const kolUpdateRequests = extractKOLsFromUsers(data.users, handleToKOLDict);
   logger.info("Fetched existing KOLs", {
     existingKOLs: kolsToProcess.map((kol) => kol.data),
   });
@@ -98,7 +117,6 @@ const processNotification = async (data: ParsedNotification) => {
     .map((kol) => kol.data.xUserIDStr)
     .filter((id): id is string => !!id);
   const kolTweets = await batchFetchUserTweets(kolsToProcessIDs);
-
   logger.info("Fetched user tweets", {
     kolTweets,
     users: data.users,
@@ -110,14 +128,6 @@ const processNotification = async (data: ParsedNotification) => {
     return;
   }
 
-  kolsToProcess.forEach((dupe) => {
-    handleToKOLDict[dupe.data.xHandle] = dupe.data;
-  });
-  data.users.forEach((user) => {
-    const handle = genXUserHandle(user);
-    handleToXUserDict[handle] = user;
-  });
-  const kolsToUpdate = extractKOLsFromUsers(data.users, handleToKOLDict);
   const userMostRecentTweets = extractUserTweets(
     filteredKOLTweets,
     data.users,
@@ -151,9 +161,11 @@ const processNotification = async (data: ParsedNotification) => {
         xApiResponse: { ...tweet },
       },
     };
-    const kolToUpdate = kolsToUpdate.find((k) => k.id === kolID)?.payload;
-    if (kolToUpdate) {
-      payload.kolPayload = { ...kolToUpdate };
+    const kolUpdateRequest = kolUpdateRequests.find(
+      (k) => k.id === kolID
+    )?.payload;
+    if (kolUpdateRequest) {
+      payload.kolPayload = { ...kolUpdateRequest };
     }
     augmentedKOLUpdateData.push(payload);
   }
@@ -200,6 +212,30 @@ const constructKOLUpdatePayload = (kol: KOL, xUser: XUser): UpdateData<KOL> => {
   return result;
 };
 
+const validateKOLLastPostSeen = (kol: KOL): boolean => {
+  if (kol.lastPostSeenAt) {
+    const timeDiffMS = Date.now() - kol.lastPostSeenAt;
+    // ignore if over 120 seconds recently (duplicate)
+    if (timeDiffMS > IGNORE_NOTIFICATIONS_OLDER_THAN_MS) {
+      logger.info("Valid recent post for kol", {
+        kol: kol,
+        screenName: kol.xScreenName,
+        timeDiffMS,
+      });
+
+      return true;
+    } else {
+      // Skipping duplicate post
+      logger.debug("Skipping duplicate user", {
+        screenName: kol.xScreenName,
+        timeDiffMS,
+      });
+      return false;
+    }
+  }
+  return true;
+};
+
 const extractKOLsFromUsers = (
   users: XUser[],
   handleToKOLDict: Record<XHandle, KOL>
@@ -216,30 +252,7 @@ const extractKOLsFromUsers = (
       continue;
     }
     const payload = constructKOLUpdatePayload(recentKOLData, user);
-    if (recentKOLData.lastPostSeenAt) {
-      const timeDiffMS = Date.now() - recentKOLData.lastPostSeenAt;
-      // ignore if over 120 seconds recently (duplicate)
-      if (timeDiffMS > IGNORE_NOTIFICATIONS_OLDER_THAN_MS) {
-        logger.info("Valid recent post for user", {
-          user,
-          kol: recentKOLData,
-          screenName: user.screen_name,
-          timeDiffMS,
-        });
-        // valid recent post, not duplicate
-        // update timestamp
-        kolsToUpdate.push({
-          id: recentKOLData.id,
-          payload,
-        });
-      } else {
-        // Skipping duplicate post
-        logger.debug("Skipping duplicate user", {
-          screenName: user.screen_name,
-          timeDiffMS,
-        });
-      }
-    } else {
+    if (validateKOLLastPostSeen(recentKOLData)) {
       kolsToUpdate.push({
         id: recentKOLData.id,
         payload,

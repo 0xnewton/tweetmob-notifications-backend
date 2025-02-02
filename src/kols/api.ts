@@ -64,7 +64,8 @@ export const createKOL = async (
 export const bulkFetchKOLsByHandle = async (
   ids: XHandle[]
 ): Promise<FetchResult<KOL>[]> => {
-  const idBatches = batch(ids);
+  const uniqueIds = Array.from(new Set(ids));
+  const idBatches = batch(uniqueIds);
   const keyXHandle: keyof KOL = "xHandle";
   const result = await Promise.all(
     idBatches.map(async (batch) => {
