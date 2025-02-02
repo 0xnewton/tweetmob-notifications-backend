@@ -2,13 +2,13 @@ import { logger } from "firebase-functions";
 import { onRequest } from "firebase-functions/v2/https";
 import { APIRequest, APIResponse } from "../types";
 import { SubscriptionService } from "../../subscriptions/service";
-import { Subscription } from "../../subscriptions/types";
 import { subscriptionAPIMetadataSchema } from "./schemas";
 import { z } from "zod";
 import { SubscriptionNotFoundError } from "../../subscriptions/errors";
+import { Subscription } from "../../subscriptions/types";
 
-export const editSubscription = onRequest(
-  async (request: APIRequest, response: APIResponse) => {
+export const editSubscription = <T>(converter: (arg: Subscription) => T) =>
+  onRequest(async (request: APIRequest, response: APIResponse) => {
     logger.info("Edit Subscription event handler", { request, response });
     const user = request.user;
     const subscriptionID = request.params.id;
@@ -50,8 +50,8 @@ export const editSubscription = onRequest(
           user,
         }
       );
-      const result: EditResponse = {
-        data: subscriptionResult.data,
+      const result: EditResponse<T> = {
+        data: converter(subscriptionResult.data),
         message: "Successfully edited subscription",
       };
       response.status(201).send(result);
@@ -67,11 +67,10 @@ export const editSubscription = onRequest(
     }
 
     return;
-  }
-);
+  });
 
-interface EditResponse {
-  data: Subscription;
+interface EditResponse<T> {
+  data: T;
   message: string;
 }
 

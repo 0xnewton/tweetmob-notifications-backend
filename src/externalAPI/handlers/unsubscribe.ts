@@ -2,10 +2,11 @@ import { logger } from "firebase-functions";
 import { onRequest } from "firebase-functions/v2/https";
 import { APIRequest, APIResponse } from "../types";
 import { SubscriptionService } from "../../subscriptions/service";
+import { SubscriptionNotFoundError } from "../../subscriptions/errors";
 import { Subscription } from "../../subscriptions/types";
 
-export const unsubscribe = onRequest(
-  async (request: APIRequest, response: APIResponse) => {
+export const unsubscribe = <T>(converter: (arg: Subscription) => T) =>
+  onRequest(async (request: APIRequest, response: APIResponse) => {
     logger.info("Unsubscribe event handler", { request, response });
     const user = request.user;
     const subscriptionID = request.params.id;
@@ -30,13 +31,17 @@ export const unsubscribe = onRequest(
         },
       });
 
-      const responseBody: UnsubscribeResponse = {
-        data: subscription.data,
+      const responseBody: UnsubscribeResponse<T> = {
+        data: converter(subscription.data),
         message: "Successfully unsubscribed",
       };
 
       response.status(200).send(responseBody);
     } catch (err: any) {
+      if (err instanceof SubscriptionNotFoundError) {
+        response.status(404).send("Subscription not found");
+        return;
+      }
       logger.error("Error unsubscribing", {
         errDetails: err?.message || "",
       });
@@ -44,10 +49,9 @@ export const unsubscribe = onRequest(
     }
 
     return;
-  }
-);
+  });
 
-interface UnsubscribeResponse {
-  data: Subscription;
+interface UnsubscribeResponse<T> {
+  data: T;
   message: string;
 }

@@ -16,6 +16,8 @@ import { privateAPIKeyValidator } from "./middleware/privateAPIKeyValidator";
 import { editSubscription } from "./handlers/editSubscription";
 import { apiDocs } from "./handlers/apiDocs";
 import * as swaggerUi from "swagger-ui-express";
+import { convertSubscriptionV1 } from "./converters/subscriptionV1";
+import { SubscriptionV1 } from "./types";
 
 const app = express();
 
@@ -58,7 +60,7 @@ publicAuthenticatedRouterV1.get(
 );
 publicAuthenticatedRouterV1.post(
   "/subscriptions/:id",
-  handlerWrapper(editSubscription)
+  handlerWrapper(editSubscription<SubscriptionV1>(convertSubscriptionV1))
 );
 
 // Routes for internal apis protected by internal API key

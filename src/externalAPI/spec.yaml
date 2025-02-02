@@ -202,10 +202,6 @@ components:
         updatedAt:
           type: integer
           description: Unix timestamp in milliseconds.
-        deletedAt:
-          type: integer
-          nullable: true
-          description: Unix timestamp in milliseconds or null.
         apiMetadata:
           type: object
           additionalProperties:

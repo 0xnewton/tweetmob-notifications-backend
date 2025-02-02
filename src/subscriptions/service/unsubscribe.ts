@@ -4,6 +4,7 @@ import { Subscription, SubscriptionID } from "../types";
 import { editSubscription } from "../api";
 import { FetchResult } from "../../lib/types";
 import { getByID } from "./getByID";
+import { SubscriptionNotFoundError } from "../errors";
 
 interface UnsubscribeParams {
   id: SubscriptionID;
@@ -24,7 +25,7 @@ export const unsubscribe = async (
 
   if (!subscription) {
     logger.debug("Subscription not found", { params });
-    throw new Error("Subscription not found");
+    throw new SubscriptionNotFoundError("Subscription not found");
   }
 
   const result = await editSubscription({

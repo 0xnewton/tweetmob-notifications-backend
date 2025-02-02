@@ -7,63 +7,64 @@ import { SubscriptionExistsError } from "../../subscriptions/errors";
 import { subscriptionAPIMetadataSchema } from "./schemas";
 import { Subscription } from "../../subscriptions/types";
 
-export const subscribe = onRequest(
-  async (request: APIRequest, response: APIResponse): Promise<void> => {
-    const user = request.user;
-    logger.info("Subscribe event handler", { user });
+export const subscribe = <T>(converter: (arg: Subscription) => T) =>
+  onRequest(
+    async (request: APIRequest, response: APIResponse): Promise<void> => {
+      const user = request.user;
+      logger.info("Subscribe event handler", { user });
 
-    if (!user) {
-      logger.debug("User not found", { request });
-      response.status(401).send("Unauthorized");
-      return;
-    }
-
-    let webhookURL;
-    let xHandle;
-    let metadata;
-    try {
-      ({ webhookURL, xHandle, metadata } = Payload.parse(request.body));
-    } catch (err: any) {
-      logger.debug("Invalid payload", {
-        request,
-        err: err?.details || "An error occured",
-      });
-      response.status(400).send("Invalid payload");
-      return;
-    }
-    try {
-      const subscriptionResult = await SubscriptionService.create(
-        {
-          webhookURL,
-          xHandle,
-          apiMetadata: metadata,
-        },
-        {
-          user,
-        }
-      );
-      const result: SubscribeResponse = {
-        data: subscriptionResult.data,
-        message: "Successfully subscribed",
-      };
-      response.status(201).send(result);
-    } catch (err: any) {
-      logger.error("Error creating subscription", {
-        errDetails: err?.message || "",
-      });
-      if (err instanceof SubscriptionExistsError) {
-        response.status(400).send("Subscription already exists");
-      } else {
-        response.status(500).send("Something went wrong. Please try again.");
+      if (!user) {
+        logger.debug("User not found", { request });
+        response.status(401).send("Unauthorized");
+        return;
       }
+
+      let webhookURL;
+      let xHandle;
+      let metadata;
+      try {
+        ({ webhookURL, xHandle, metadata } = Payload.parse(request.body));
+      } catch (err: any) {
+        logger.debug("Invalid payload", {
+          request,
+          err: err?.details || "An error occured",
+        });
+        response.status(400).send("Invalid payload");
+        return;
+      }
+      try {
+        const subscriptionResult = await SubscriptionService.create(
+          {
+            webhookURL,
+            xHandle,
+            apiMetadata: metadata,
+          },
+          {
+            user,
+          }
+        );
+        const result: SubscribeResponse<T> = {
+          data: converter(subscriptionResult.data),
+          message: "Successfully subscribed",
+        };
+        response.status(201).send(result);
+      } catch (err: any) {
+        logger.error("Error creating subscription", {
+          errDetails: err?.message || "",
+        });
+        if (err instanceof SubscriptionExistsError) {
+          response.status(400).send("Subscription already exists");
+        } else {
+          response.status(500).send("Something went wrong. Please try again.");
+        }
+      }
+
+      return;
     }
+  );
 
-    return;
-  }
-);
-
-interface SubscribeResponse {
-  data: Subscription;
+interface SubscribeResponse<T> {
+  data: T;
   message: string;
 }
 
