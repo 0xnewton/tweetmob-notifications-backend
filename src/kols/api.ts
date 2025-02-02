@@ -67,10 +67,12 @@ export const bulkFetchKOLsByHandle = async (
   const uniqueIds = Array.from(new Set(ids));
   const idBatches = batch(uniqueIds);
   const keyXHandle: keyof KOL = "xHandle";
+  const deletedAtKey: keyof KOL = "deletedAt";
   const result = await Promise.all(
     idBatches.map(async (batch) => {
       const snapshot = await getKOLCollection()
         .where(keyXHandle, "in", batch)
+        .where(deletedAtKey, "==", null)
         .get();
       return snapshot.docs.map((doc) => {
         return {

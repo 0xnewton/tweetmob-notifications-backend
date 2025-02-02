@@ -90,8 +90,8 @@ const processNotification = async (data: ParsedNotification) => {
     logger.info("No KOLs found for x handles", { xHandles });
     return;
   }
-  const kolsToProcess = allKOLs.filter((data) =>
-    validateKOLLastPostSeen(data.data)
+  const kolsToProcess = allKOLs.filter(
+    (data) => validateKOLLastPostSeen(data.data) && !data.data.deletedAt
   );
 
   if (kolsToProcess.length === 0) {

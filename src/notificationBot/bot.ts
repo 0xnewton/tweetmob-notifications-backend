@@ -10,6 +10,7 @@ import { ApiKeys } from "../apiKeys/service";
 import { getUserFromContext, UNREGISTERED_USER_MESSAGE } from "./utils";
 import { FetchResult } from "../lib/types";
 import { User } from "../users/types";
+import { SubscriptionExistsError } from "../subscriptions/errors";
 
 enum Commands {
   start = "start",
@@ -152,7 +153,7 @@ export const initializeBot = (apiKey: string) => {
       subscription = subscriptionResult.data;
     } catch (err) {
       logger.error("Error creating subscription", { ctx, err });
-      if (err instanceof UserExistsError) {
+      if (err instanceof SubscriptionExistsError) {
         ctx.reply("You are already subscribed to this Twitter handle.");
         return;
       }

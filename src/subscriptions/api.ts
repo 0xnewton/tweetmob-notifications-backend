@@ -19,11 +19,10 @@ export const getExistingSubscriptionByXHandle = async (
   params: GetSubscriptionByXHandleParams
 ): Promise<FetchResult<Subscription> | null> => {
   const key: keyof Subscription = "xHandle";
-  const query = getSubscriptionCollection(params.userID).where(
-    key,
-    "==",
-    params.xHandle
-  );
+  const deletedAtKey: keyof Subscription = "deletedAt";
+  const query = getSubscriptionCollection(params.userID)
+    .where(key, "==", params.xHandle)
+    .where(deletedAtKey, "==", null);
   const snapshot = await query.get();
   const docs = snapshot.docs.map((doc) => {
     return { data: doc.data(), ref: doc.ref };
@@ -68,6 +67,7 @@ export const batchFetchKOLSubscriptions = async (
   ids: KOLID[]
 ): Promise<FetchResult<Subscription>[]> => {
   const kolIDKey: keyof Subscription = "kolID";
+  const deletedAtKey: keyof Subscription = "deletedAt";
 
   // Break the ids array into chunks respecting the `in` clause limit
   const idBatches = batch(ids, MAX_IN_CLAUSE_LIMIT);
@@ -75,11 +75,9 @@ export const batchFetchKOLSubscriptions = async (
   // Use Promise.all to fetch all batches in parallel
   const allResults = await Promise.all(
     idBatches.map(async (idBatch) => {
-      const query = getSubscriptionCollectionGroup().where(
-        kolIDKey,
-        "in",
-        idBatch
-      );
+      const query = getSubscriptionCollectionGroup()
+        .where(kolIDKey, "in", idBatch)
+        .where(deletedAtKey, "==", null);
       const snapshot = await query.get();
       return snapshot.docs.map((doc) => ({
         data: doc.data(),
