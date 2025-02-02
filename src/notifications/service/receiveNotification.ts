@@ -17,7 +17,7 @@ import { UserTweet } from "../../lib/types";
 import { writeWebhookReceipts } from "../../subscriptions/service/writeWebhookReceipts";
 import { ParsedTweetLegacy } from "../../x/types";
 
-const IGNORE_NOTIFICATIONS_OLDER_THAN_MS = 2 * 60 * 1000; // 2 minutes
+const IGNORE_NOTIFICATIONS_YOUNGER_THAN_MS = 4 * 60 * 1000; // 4 minutes
 
 interface ReceiveNotificationParams {
   data: XNotification;
@@ -216,7 +216,7 @@ const validateKOLLastPostSeen = (kol: KOL): boolean => {
   if (kol.lastPostSeenAt) {
     const timeDiffMS = Date.now() - kol.lastPostSeenAt;
     // ignore if over 120 seconds recently (duplicate)
-    if (timeDiffMS > IGNORE_NOTIFICATIONS_OLDER_THAN_MS) {
+    if (timeDiffMS > IGNORE_NOTIFICATIONS_YOUNGER_THAN_MS) {
       logger.info("Valid recent post for kol", {
         kol: kol,
         screenName: kol.xScreenName,
