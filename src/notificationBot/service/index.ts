@@ -1,3 +1,4 @@
 export * from "./subscribe";
 export * from "./generateAPIKey";
 export * from "./start";
+export * from "./listSubs";

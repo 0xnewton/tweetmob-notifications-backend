@@ -14,13 +14,15 @@ interface ListParams {
 }
 
 interface Filters {
-  orderBy: {
+  orderBy?: {
     key: keyof Pick<Subscription, "xHandle">;
     direction: "asc";
   };
   cursor?: SubscriptionID;
   limit: number;
 }
+
+const DEFAULT_ORDER_BY: keyof Subscription = "xHandle";
 
 export const list = async (
   params: ListParams
@@ -35,8 +37,8 @@ export const list = async (
   );
 
   let query = collectionRef.orderBy(
-    params.filter.orderBy.key,
-    params.filter.orderBy.direction
+    params.filter?.orderBy?.key || DEFAULT_ORDER_BY,
+    params.filter?.orderBy?.direction || "asc"
   );
 
   if (params.filter.cursor) {
