@@ -22,13 +22,14 @@ const PAGE_SIZE = 5;
  */
 function buildSubsPage(
   subs: Subscription[],
-  page: number
+  page: number,
+  pageSize = PAGE_SIZE
 ): {
   messageText: string;
   inlineKeyboard: ReturnType<typeof Markup.inlineKeyboard>;
 } {
-  const start = (page - 1) * PAGE_SIZE;
-  const pageSubs = subs.slice(start, start + PAGE_SIZE);
+  const start = (page - 1) * pageSize;
+  const pageSubs = subs.slice(start, start + pageSize);
   let messageText = `*Your Subscriptions \\(Page ${page}\\)\\:*\n\n`;
 
   pageSubs.forEach((sub) => {
@@ -41,7 +42,7 @@ function buildSubsPage(
   const subscriptionButtons = pageSubs.map(generateSubEditButtons);
 
   // Create pagination buttons if there are multiple pages.
-  const totalPages = Math.ceil(subs.length / PAGE_SIZE);
+  const totalPages = Math.ceil(subs.length / pageSize);
   const paginationButtons = [];
   if (page > 1) {
     paginationButtons.push(
@@ -67,7 +68,7 @@ function buildSubsPage(
  * Command handler for /list. Fetches the user's subscriptions,
  * builds the first page and replies with a paginated message.
  */
-export const listSubs = async (ctx: Context) => {
+export const listSubs = async (ctx: Context, pageSize = PAGE_SIZE) => {
   logger.info("List subs command received", { ctx });
 
   if (!ctx.from) {
@@ -115,7 +116,11 @@ export const listSubs = async (ctx: Context) => {
   logger.info("Crafting message for subscriptions", { ctx, subs });
   // Build the first page
   const initialPage = 1;
-  const { messageText, inlineKeyboard } = buildSubsPage(subs, initialPage);
+  const { messageText, inlineKeyboard } = buildSubsPage(
+    subs,
+    initialPage,
+    pageSize
+  );
   logger.info("Sending message with subscriptions", { ctx, messageText });
   await ctx.replyWithMarkdownV2(messageText, {
     reply_markup: inlineKeyboard.reply_markup,

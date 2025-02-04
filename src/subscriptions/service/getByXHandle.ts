@@ -1,5 +1,4 @@
 import { XHandle } from "../../kols/types";
-import { getSubscriptionDocument } from "../../lib/refs";
 import { FetchResult } from "../../lib/types";
 import { User } from "../../users/types";
 import { getExistingSubscriptionByXHandle } from "../api";

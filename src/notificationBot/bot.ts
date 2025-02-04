@@ -25,12 +25,12 @@ const commands = [
     description: `Subscribe to a Twitter handle (usage: /${Commands.sub} <x handle> <webhook URL>, e.g. /${Commands.sub} elonmusk https://your-webhook-url.com)`,
   },
   {
-    command: Commands.list,
-    description: "List your subscriptions",
-  },
-  {
     command: Commands.edit,
     description: "Edit a subscription",
+  },
+  {
+    command: Commands.list,
+    description: "List your subscriptions",
   },
   {
     command: Commands.list_all,
@@ -69,6 +69,10 @@ export const initializeBot = (apiKey: string) => {
 
   bot.command(Commands.list, async (ctx) => {
     await botService.listSubs(ctx);
+  });
+
+  bot.command(Commands.list_all, async (ctx) => {
+    await botService.listSubs(ctx, 1000);
   });
 
   bot.command(Commands.docs, (ctx) => {
