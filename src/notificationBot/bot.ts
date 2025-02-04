@@ -78,7 +78,7 @@ export const initializeBot = (apiKey: string) => {
     } else if (data.startsWith("editWebhook:")) {
       await botService.handleEditWebhook(data, ctx);
     } else if (data.startsWith("unsubscribe:")) {
-      logger.info("yp");
+      await botService.unsubscribe(data, ctx);
     }
   });
 
