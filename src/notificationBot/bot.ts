@@ -10,6 +10,8 @@ enum Commands {
   sub = "sub",
   list = "list",
   docs = "docs",
+  edit = "edit",
+  list_all = "list_all",
 }
 
 // Define bot commands (note: parameters are not defined here)
@@ -25,6 +27,14 @@ const commands = [
   {
     command: Commands.list,
     description: "List your subscriptions",
+  },
+  {
+    command: Commands.edit,
+    description: "Edit a subscription",
+  },
+  {
+    command: Commands.list_all,
+    description: "List all subscriptions",
   },
   {
     command: Commands.generate_api_key,
@@ -51,6 +61,10 @@ export const initializeBot = (apiKey: string) => {
 
   bot.command(Commands.sub, async (ctx) => {
     await botService.subscribe(ctx.message.text, ctx);
+  });
+
+  bot.command(Commands.edit, async (ctx) => {
+    await botService.initEdit(ctx.message.text, ctx);
   });
 
   bot.command(Commands.list, async (ctx) => {

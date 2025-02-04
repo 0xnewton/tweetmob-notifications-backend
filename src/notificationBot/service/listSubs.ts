@@ -4,9 +4,13 @@ import { Subscription } from "../../subscriptions/types";
 import { SubscriptionService } from "../../subscriptions/service";
 import { FetchResult } from "../../lib/types";
 import { User } from "../../users/types";
-import { getUserFromContext, UNREGISTERED_USER_MESSAGE } from "../utils";
+import {
+  generateSubEditButtons,
+  generateSubMessage,
+  getUserFromContext,
+  UNREGISTERED_USER_MESSAGE,
+} from "../utils";
 import { TGUserNotFoundError } from "../../users/errors";
-import { formatXHandle } from "../../lib/x";
 
 // Adjust the page size as needed
 const PAGE_SIZE = 5;
@@ -29,21 +33,12 @@ function buildSubsPage(
 
   pageSubs.forEach((sub) => {
     // messageText += `*${formatXHandle(sub.xHandle)}*\nWebhook: ${sub.webhookURL}\n\n`;
-    messageText += `*[${escapeMarkdown(formatXHandle(sub.xHandle))}](https://twitter.com/${escapeMarkdown(sub.xHandle)})*\nWebhook: ${escapeMarkdown(sub.webhookURL)}\n\n`;
+    messageText += generateSubMessage(sub);
   });
 
   // Create inline keyboard rows for each subscription.
   // Each subscription gets its own row with "Edit Webhook" and "Unsubscribe" buttons.
-  const subscriptionButtons = pageSubs.map((sub) => [
-    Markup.button.callback(
-      `Edit ${escapeMarkdown(formatXHandle(sub.xHandle))}`,
-      `editWebhook:${sub.id}`
-    ),
-    Markup.button.callback(
-      `Unsubscribe ${escapeMarkdown(formatXHandle(sub.xHandle))}`,
-      `unsubscribe:${sub.id}`
-    ),
-  ]);
+  const subscriptionButtons = pageSubs.map(generateSubEditButtons);
 
   // Create pagination buttons if there are multiple pages.
   const totalPages = Math.ceil(subs.length / PAGE_SIZE);
@@ -182,20 +177,3 @@ export const handleSubsPagination = async (
     await ctx.answerCbQuery("Failed to update page.");
   }
 };
-
-/**
- * Escapes Telegram MarkdownV2 special characters by prefixing them with a backslash.
- * The characters escaped are: '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'
- *
- * @param text The input string to escape.
- * @returns The escaped string.
- */
-export function escapeMarkdown(text: string): string {
-  // We create a regex that matches any of the special characters.
-  // Using the RegExp constructor with a string literal lets us easily escape the characters.
-  const escapeCharsRegex = new RegExp(
-    "([_*\\[\\]\\(\\)~`>#+\\-=\\|{}\\.!])",
-    "g"
-  );
-  return text.replace(escapeCharsRegex, "\\$1");
-}
