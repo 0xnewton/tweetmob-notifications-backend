@@ -44,7 +44,7 @@ export const subscribe = async (message: string, ctx: Context) => {
     return;
   }
 
-  ctx.reply("Looks interesting. Please give me a moment to set things up...");
+  ctx.reply("Looks great! Give me a moment to set things up...");
 
   let user: FetchResult<User>;
   try {

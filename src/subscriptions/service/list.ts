@@ -1,3 +1,4 @@
+import { logger } from "firebase-functions/v1";
 import {
   getSubscriptionCollection,
   getSubscriptionDocument,
@@ -27,6 +28,7 @@ const DEFAULT_ORDER_BY: keyof Subscription = "xHandle";
 export const list = async (
   params: ListParams
 ): Promise<PaginatedResults<FetchResult<Subscription>>> => {
+  logger.info("List subscription service hit", { params });
   const deletedAtKey: keyof Subscription = "deletedAt";
 
   // Query for subscriptions where "deletedAt" is null
@@ -66,6 +68,7 @@ export const list = async (
 
   // Only return the requested limit number of documents.
   const docsInPage = hasNextPage ? docs.slice(0, -1) : docs;
+  logger.info("List subscription service response", { docsInPage });
 
   return {
     data: docsInPage, // Return only the limited page of docs.
