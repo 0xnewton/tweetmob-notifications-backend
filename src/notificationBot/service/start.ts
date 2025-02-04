@@ -4,9 +4,7 @@ import { userService } from "../../users/service";
 import { UserExistsError } from "../../users/errors";
 
 export const start = async (ctx: Context) => {
-  ctx.reply(
-    "Welcome to the Tweetmob Notifications Bot! Use /help to see the available commands."
-  );
+  ctx.reply("Welcome to the Tweetmob Notifications Bot!");
 
   logger.info("Start command received", { ctx });
   const userID = ctx.from?.id;
