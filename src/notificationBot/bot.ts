@@ -26,7 +26,8 @@ const commands = [
   },
   {
     command: Commands.edit,
-    description: "Edit a subscription",
+    description:
+      "Edit a subscription (usage: /${Commands.edit} <x handle>, e.g. /${Commands.edit} elonmusk)",
   },
   {
     command: Commands.list,
