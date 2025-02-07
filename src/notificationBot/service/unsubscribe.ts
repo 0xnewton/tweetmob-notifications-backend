@@ -23,13 +23,13 @@ export const unsubscribe = async (callbackData: string, ctx: Context) => {
 
   const subscriptionId = callbackData.split(":")[1];
   if (!subscriptionId) {
-    await ctx.answerCbQuery("Invalid subscription ID.");
+    ctx.answerCbQuery("Invalid subscription ID.");
     return;
   }
 
   const userId = ctx.from?.id;
   if (!userId) {
-    await ctx.answerCbQuery("User not found.");
+    ctx.answerCbQuery("User not found.");
     return;
   }
 
@@ -37,7 +37,7 @@ export const unsubscribe = async (callbackData: string, ctx: Context) => {
   try {
     user = await getUserFromContext(ctx);
   } catch (err: any) {
-    await ctx.answerCbQuery("User not found.");
+    ctx.answerCbQuery("User not found.");
     return;
   }
 
@@ -51,9 +51,9 @@ export const unsubscribe = async (callbackData: string, ctx: Context) => {
       },
     });
 
-    await ctx.reply("Subscription successfully removed.");
+    ctx.reply("Subscription successfully removed.");
   } catch (error) {
     logger.error("Failed to update subscription", { error });
-    await ctx.reply("Failed to remove subscription. Please try again");
+    ctx.reply("Failed to remove subscription. Please try again");
   }
 };

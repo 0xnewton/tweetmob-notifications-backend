@@ -78,7 +78,7 @@ export const listSubs = async (ctx: Context, pageSize = PAGE_SIZE) => {
   }
 
   // Inform the user that we're fetching their subscriptions.
-  await ctx.reply("Fetching your subscriptions...");
+  ctx.reply("Fetching your subscriptions...");
 
   // Get the user details
   let user: FetchResult<User>;
@@ -122,7 +122,7 @@ export const listSubs = async (ctx: Context, pageSize = PAGE_SIZE) => {
     pageSize
   );
   logger.info("Sending message with subscriptions", { ctx, messageText });
-  await ctx.replyWithMarkdownV2(messageText, {
+  ctx.replyWithMarkdownV2(messageText, {
     reply_markup: inlineKeyboard.reply_markup,
   });
 };
@@ -144,7 +144,7 @@ export const handleSubsPagination = async (
   // Extract the target page number.
   const page = parseInt(callbackData.split(":")[1], 10);
   if (isNaN(page)) {
-    await ctx.answerCbQuery("Invalid page number.");
+    ctx.answerCbQuery("Invalid page number.");
     return;
   }
 
@@ -153,7 +153,7 @@ export const handleSubsPagination = async (
   try {
     user = await getUserFromContext(ctx);
   } catch (err: any) {
-    await ctx.answerCbQuery("User not found.");
+    ctx.answerCbQuery("User not found.");
     return;
   }
 
@@ -166,7 +166,7 @@ export const handleSubsPagination = async (
     subs.push(...data.data.map((sub) => sub.data));
   } catch (err) {
     logger.error("Error fetching subscriptions", { ctx, err });
-    await ctx.answerCbQuery("Error fetching subscriptions.");
+    ctx.answerCbQuery("Error fetching subscriptions.");
     return;
   }
 

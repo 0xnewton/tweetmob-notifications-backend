@@ -26,13 +26,13 @@ export const handleEditWebhook = async (callbackData: string, ctx: Context) => {
 
   const subscriptionId = callbackData.split(":")[1];
   if (!subscriptionId) {
-    await ctx.answerCbQuery("Invalid subscription ID.");
+    ctx.answerCbQuery("Invalid subscription ID.");
     return;
   }
 
   const userId = ctx.from?.id;
   if (!userId) {
-    await ctx.answerCbQuery("User not found.");
+    ctx.answerCbQuery("User not found.");
     return;
   }
 
@@ -59,7 +59,7 @@ export const handleEditWebhookInput = async (ctx: Context) => {
   try {
     user = await getUserFromContext(ctx);
   } catch (err: any) {
-    await ctx.answerCbQuery("User not found.");
+    ctx.answerCbQuery("User not found.");
     return;
   }
 
@@ -90,43 +90,12 @@ export const handleEditWebhookInput = async (ctx: Context) => {
       }
     );
 
-    await ctx.reply(
-      `Subscription updated with new webhook URL: ${newWebhookURL}`
-    );
+    ctx.reply(`Subscription updated with new webhook URL: ${newWebhookURL}`);
   } catch (error) {
     logger.error("Failed to update subscription", { error });
-    await ctx.reply("Failed to update subscription. Please try again.");
+    ctx.reply("Failed to update subscription. Please try again.");
   }
 
   // Remove the pending edit for this user.
   pendingEdits.delete(userId);
 };
-
-// export const editSub = async (callbackData: string, ctx: Context) => {
-//   logger.info("Edit subscription service hit", { callbackData, ctx });
-//   if (!callbackData || !callbackData.startsWith("editWebhook:")) return;
-//   const subID = callbackData.split(":")[1];
-
-//   // Re-fetch the user and their subscriptions.
-//   let user: FetchResult<User>;
-//   try {
-//     user = await getUserFromContext(ctx);
-//   } catch (err: any) {
-//     await ctx.answerCbQuery("User not found.");
-//     return;
-//   }
-
-//   try {
-//     const data = await SubscriptionService.edit({
-//       id: subID,
-//         payload: {
-//             webhookURL: "https://example.com/webhook",
-//         },
-//     },
-//     { user: user.data });
-//     const sub = data.data;
-//     const messageText = `Editing subscription: ${sub.xHandle}`;
-//     logger.info("Sending message with subscription details", { ctx, messageText });
-//     await ctx.editMessageText(messageText);
-//   }
-// };
