@@ -1,54 +1,25 @@
 import { Telegraf, Context } from "telegraf";
 import * as botService from "./service";
 import { logger } from "firebase-functions";
+import { tgBotAPIKey } from "../lib/secrets";
 
 const API_DOCS = "https://externalapi-qzvlzsqjjq-uc.a.run.app/docs";
 
-enum Commands {
-  start = "start",
-  generate_api_key = "generate_api_key",
-  sub = "sub",
-  list = "list",
-  docs = "docs",
-  edit = "edit",
-  list_all = "list_all",
-}
+// Define as a singleton
+let bot: Telegraf | null = null;
 
-// Define bot commands (note: parameters are not defined here)
-const commands = [
-  {
-    command: Commands.start,
-    description: "Register your account",
-  },
-  {
-    command: Commands.sub,
-    description: `Subscribe to a Twitter handle (usage: /${Commands.sub} <x handle> <webhook URL>, e.g. /${Commands.sub} elonmusk https://your-webhook-url.com)`,
-  },
-  {
-    command: Commands.edit,
-    description:
-      "Edit a subscription (usage: /${Commands.edit} <x handle>, e.g. /${Commands.edit} elonmusk)",
-  },
-  {
-    command: Commands.list,
-    description: "List your subscriptions",
-  },
-  {
-    command: Commands.list_all,
-    description: "List all subscriptions",
-  },
-  {
-    command: Commands.generate_api_key,
-    description: "Generate a new API key",
-  },
-  {
-    command: Commands.docs,
-    description: "View the API documentation",
-  },
-];
+export const getBot = () => {
+  const apiKey = tgBotAPIKey.value();
 
-export const initializeBot = (apiKey: string) => {
-  const bot = new Telegraf<Context>(apiKey);
+  if (!apiKey) {
+    throw new Error("Telegram bot API key is not set");
+  }
+
+  if (bot) {
+    return bot;
+  }
+
+  bot = new Telegraf<Context>(apiKey);
 
   bot.telegram.setMyCommands(commands);
 
@@ -108,3 +79,46 @@ export const initializeBot = (apiKey: string) => {
 
   return bot;
 };
+
+enum Commands {
+  start = "start",
+  generate_api_key = "generate_api_key",
+  sub = "sub",
+  list = "list",
+  docs = "docs",
+  edit = "edit",
+  list_all = "list_all",
+}
+
+// Define bot commands (note: parameters are not defined here)
+const commands = [
+  {
+    command: Commands.start,
+    description: "Register your account",
+  },
+  {
+    command: Commands.sub,
+    description: `Subscribe to a Twitter handle (usage: /${Commands.sub} <x handle> <webhook URL>, e.g. /${Commands.sub} elonmusk https://your-webhook-url.com)`,
+  },
+  {
+    command: Commands.edit,
+    description:
+      "Edit a subscription (usage: /${Commands.edit} <x handle>, e.g. /${Commands.edit} elonmusk)",
+  },
+  {
+    command: Commands.list,
+    description: "List your subscriptions",
+  },
+  {
+    command: Commands.list_all,
+    description: "List all subscriptions",
+  },
+  {
+    command: Commands.generate_api_key,
+    description: "Generate a new API key",
+  },
+  {
+    command: Commands.docs,
+    description: "View the API documentation",
+  },
+];
