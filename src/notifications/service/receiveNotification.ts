@@ -1,5 +1,9 @@
 import { logger } from "firebase-functions";
-import { XNotification, XNotificationItem, XTweet, XUser } from "../types";
+import {
+  ExtractedUser,
+  NotificationResponse,
+  ParsedNotification,
+} from "../types";
 import { KOL, KOLID, KOLStatus, XHandle, XKOLSnapshot } from "../../kols/types";
 import {
   batchUpdateTweetsAndKOLs,
@@ -16,74 +20,75 @@ import { SubscriptionService } from "../../subscriptions/service";
 import { UserTweet } from "../../lib/types";
 import { writeWebhookReceipts } from "../../subscriptions/service/writeWebhookReceipts";
 import { InternalTweetBundle } from "../../x/types";
+import { extractUsersFromPayload } from "../utils";
 
 const IGNORE_NOTIFICATIONS_YOUNGER_THAN_MS = 4 * 60 * 1000; // 4 minutes
 
 interface ReceiveNotificationParams {
-  data: XNotification;
+  data: NotificationResponse;
 }
-interface ParsedNotification {
-  users: XUser[];
-  tweets: XTweet[];
-  notifications: XNotificationItem[];
-}
+// interface ParsedNotification {
+//   users: XUser[];
+//   tweets: XTweet[];
+//   notifications: XNotificationItem[];
+// }
 
 export const receiveNotification = async (
   params: ReceiveNotificationParams
 ) => {
   logger.info("Receive notification service request hit", { params });
-  const parsedData = extractUsersFromNotifcation(params.data);
-  if (parsedData.users.length === 0) {
+  const parsedData = extractUsersFromPayload(params.data);
+  if (parsedData.length === 0) {
     logger.info("No user notifications found", { data: params.data });
     return;
   }
   await processNotification(parsedData);
 };
 
-const extractUsersFromNotifcation = (
-  data: XNotification
-): ParsedNotification => {
-  const users = data.globalObjects.users || {};
-  const tweets = Object.values(data.globalObjects.tweets || {});
-  const notifications = Object.values(data.globalObjects.notifications || {});
+// const extractUsersFromNotifcation = (
+//   data: XNotification
+// ): ParsedNotification => {
+//   const users = data.globalObjects.users || {};
+//   const tweets = Object.values(data.globalObjects.tweets || {});
+//   const notifications = Object.values(data.globalObjects.notifications || {});
 
-  const newPostNotifications = notifications.filter((notification) => {
-    return notification?.message?.text?.includes("New post notifications for");
-  });
+//   const newPostNotifications = notifications.filter((notification) => {
+//     return notification?.message?.text?.includes("New post notifications for");
+//   });
 
-  const allUsers: XUser[] = [];
-  for (const notification of newPostNotifications) {
-    // const notifTitle = notification.message.text;
-    const usersInNotif =
-      notification.template?.aggregateUserActionsV1?.fromUsers?.map(
-        (n) => n?.user?.id
-      );
-    logger.info("Found kols in notification", { usersInNotif });
-    usersInNotif?.forEach((id) => {
-      const user = users[id];
-      const existingUserInArray = allUsers.find((u) => u.id === user.id);
-      if (user && !existingUserInArray) {
-        allUsers.push(user);
-      }
-    });
-  }
+//   const allUsers: XUser[] = [];
+//   for (const notification of newPostNotifications) {
+//     // const notifTitle = notification.message.text;
+//     const usersInNotif =
+//       notification.template?.aggregateUserActionsV1?.fromUsers?.map(
+//         (n) => n?.user?.id
+//       );
+//     logger.info("Found kols in notification", { usersInNotif });
+//     usersInNotif?.forEach((id) => {
+//       const user = users[id];
+//       const existingUserInArray = allUsers.find((u) => u.id === user.id);
+//       if (user && !existingUserInArray) {
+//         allUsers.push(user);
+//       }
+//     });
+//   }
 
-  const result = {
-    users: allUsers,
-    tweets,
-    notifications,
-  };
+//   const result = {
+//     users: allUsers,
+//     tweets,
+//     notifications,
+//   };
 
-  logger.info("Extracted data from notification", { result });
+//   logger.info("Extracted data from notification", { result });
 
-  return result;
-};
+//   return result;
+// };
 
-const processNotification = async (data: ParsedNotification) => {
-  logger.info("Processing notification", { data });
+const processNotification = async (users: ParsedNotification) => {
+  logger.info("Processing notification", { users });
   const handleToKOLDict: Record<XHandle, KOL> = {};
-  const handleToXUserDict: Record<XHandle, XUser> = {};
-  const xHandles = [...new Set(data.users.map(genXUserHandle))];
+  const handleToXUserDict: Record<XHandle, ExtractedUser> = {};
+  const xHandles = [...new Set(users.map(genXUserHandle))];
   logger.info("All x handles to fetch", { xHandles });
   const allKOLs = await bulkFetchKOLsByHandle(xHandles);
   if (allKOLs.length === 0) {
@@ -104,12 +109,12 @@ const processNotification = async (data: ParsedNotification) => {
   kolsToProcess.forEach((dupe) => {
     handleToKOLDict[dupe.data.xHandle] = dupe.data;
   });
-  data.users.forEach((user) => {
+  users.forEach((user) => {
     const handle = genXUserHandle(user);
     handleToXUserDict[handle] = user;
   });
 
-  const kolUpdateRequests = extractKOLsFromUsers(data.users, handleToKOLDict);
+  const kolUpdateRequests = extractKOLsFromUsers(users, handleToKOLDict);
   logger.info("Fetched existing KOLs", {
     existingKOLs: kolsToProcess.map((kol) => kol.data),
   });
@@ -119,7 +124,7 @@ const processNotification = async (data: ParsedNotification) => {
   const kolTweets = await batchFetchUserTweets(kolsToProcessIDs);
   logger.info("Fetched user tweets", {
     kolTweets,
-    users: data.users,
+    users,
     kolUserIDStrs: kolsToProcessIDs,
   });
   const filteredKOLTweets = kolTweets.filter((p) => p.tweets?.length);
@@ -130,7 +135,7 @@ const processNotification = async (data: ParsedNotification) => {
 
   const userMostRecentTweets = extractUserTweets(
     filteredKOLTweets,
-    data.users,
+    users,
     handleToKOLDict
   );
 
@@ -179,27 +184,30 @@ const processNotification = async (data: ParsedNotification) => {
   return;
 };
 
-const genXUserHandle = (user: XUser): XHandle => {
+const genXUserHandle = (user: ExtractedUser): XHandle => {
   return parseXHandle(user.screen_name);
 };
 
-const constructKOLUpdatePayload = (kol: KOL, xUser: XUser): UpdateData<KOL> => {
+const constructKOLUpdatePayload = (
+  kol: KOL,
+  xUser: ExtractedUser
+): UpdateData<KOL> => {
   const result: UpdateData<KOL> = {
     lastPostSeenAt: Date.now(),
   };
   if (kol.status === KOLStatus.Pending) {
     result.status = KOLStatus.Active;
   }
-
-  if (kol.xUserID !== xUser.id) {
-    result.xUserID = xUser.id;
-    result.xUserIDStr = xUser.id_str;
+  const userIdInt = parseInt(xUser.rest_id, 10);
+  if (kol.xUserID !== userIdInt) {
+    result.xUserID = userIdInt;
+    result.xUserIDStr = xUser.rest_id;
     result.xScreenName = xUser.screen_name;
     result.xName = xUser.name;
     // Store updates just in case something fucks up
     const xUpdate: XKOLSnapshot = {
-      xUserID: xUser.id,
-      xUserIDStr: xUser.id_str,
+      xUserID: userIdInt,
+      xUserIDStr: xUser.rest_id,
       xScreenName: xUser.screen_name,
       xName: xUser.name,
       updatedAt: Date.now(),
@@ -235,7 +243,7 @@ const validateKOLLastPostSeen = (kol: KOL): boolean => {
 };
 
 const extractKOLsFromUsers = (
-  users: XUser[],
+  users: ExtractedUser[],
   handleToKOLDict: Record<XHandle, KOL>
 ) => {
   const kolsToUpdate: { id: KOLID; payload: UpdateData<KOL> }[] = []; // Update kols with last post time & any additional data like id_str from twitter etc
@@ -262,7 +270,7 @@ const extractKOLsFromUsers = (
 
 const extractUserTweets = (
   userTweets: BatchFetchUserTweetsResponse[],
-  xUsers: XUser[],
+  xUsers: ExtractedUser[],
   handleToKOLDict: Record<XHandle, KOL>
 ) => {
   const userMostRecentTweets: UserTweet[] = userTweets
@@ -277,7 +285,7 @@ const extractUserTweets = (
           tweet.data.createdAt &&
           new Date(tweet.data.createdAt).getTime() === maxCreatedTime
       );
-      const xUser = xUsers.find((u) => u.id_str === t.xUserIDStr);
+      const xUser = xUsers.find((u) => u.rest_id === t.xUserIDStr);
       if (!xUser) {
         logger.error("No user found for tweet", { tweet: t });
         return null;
@@ -297,7 +305,7 @@ const extractUserTweets = (
 
 const augmentUserTweetsWithKOLData = (
   userMostRecentTweets: UserTweet[],
-  handleToXUserDict: Record<XHandle, XUser>
+  handleToXUserDict: Record<XHandle, ExtractedUser>
 ): {
   user: KOL;
   tweet: InternalTweetBundle;

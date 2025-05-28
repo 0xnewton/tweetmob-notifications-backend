@@ -1,138 +1,169 @@
-export interface XNotification {
-  globalObjects: GlobalObjects;
+export type ParsedNotification = ExtractedUser[];
+
+export interface ExtractedUser {
+  rest_id: string;
+  id?: string;
+  name: string;
+  screen_name: string;
+}
+
+// API response types
+export interface NotificationResponse {
+  data: {
+    viewer_v2: ViewerV2;
+  };
+}
+
+export interface ViewerV2 {
+  user_results: ViewerUserResults;
+}
+
+export interface ViewerUserResults {
+  result: ViewerUser;
+}
+
+/**
+ * Minimal user for the notificationTimeline owner
+ */
+export interface ViewerUser {
+  __typename: "User";
+  rest_id: string;
+  notification_timeline: NotificationTimeline;
+}
+
+export interface NotificationTimeline {
+  id: string;
   timeline: Timeline;
 }
 
-interface GlobalObjects {
-  users?: Record<string, XUser>;
-  tweets?: Record<string, XTweet>;
-  notifications?: Record<string, XNotificationItem>;
-}
-
-export interface XUser {
-  id: number;
-  id_str: string;
-  name: string;
-  screen_name: string;
-  location?: string;
-  description?: string;
-  url?: string;
-  entities?: Entities;
-  followers_count: number;
-  friends_count: number;
-  listed_count: number;
-  favourites_count: number;
-  statuses_count: number;
-  created_at: string;
-  profile_image_url_https?: string;
-  verified: boolean;
-}
-
-interface Entities {
-  url?: UrlEntities;
-  description?: UrlEntities;
-}
-
-interface UrlEntities {
-  urls: Url[];
-}
-
-interface Url {
-  url: string;
-  expanded_url: string;
-  display_url: string;
-  indices: [number, number]; // Array with exactly two numbers
-}
-
-export interface XTweet {
-  id: number;
-  id_str: string;
-  text: string;
-  user_id: number;
-  created_at: string;
-  retweet_count: number;
-  favorite_count: number;
-  entities?: TweetEntities;
-}
-
-interface TweetEntities {
-  hashtags?: Hashtag[];
-  symbols?: SymbolType[];
-  user_mentions?: UserMention[];
-  urls?: Url[];
-}
-
-interface Hashtag {
-  text: string;
-  indices: [number, number];
-}
-
-interface SymbolType {
-  text: string;
-  indices: [number, number];
-}
-
-interface UserMention {
-  screen_name: string;
-  name: string;
-  id: number;
-  id_str: string;
-  indices: [number, number];
-}
-
-interface Timeline {
+export interface Timeline {
   instructions: Instruction[];
 }
 
-interface Instruction {
-  type: string;
-  entries?: Entry[];
+type Instruction =
+  | TimelineClearCache
+  | TimelineRemoveEntries
+  | TimelineAddEntries
+  | TimelineClearEntriesUnreadState
+  | TimelineMarkEntriesUnreadGreaterThanSortIndex;
+
+export interface TimelineClearCache {
+  type: "TimelineClearCache";
+}
+export interface TimelineRemoveEntries {
+  type: "TimelineRemoveEntries";
+  entry_ids: string[];
+}
+export interface TimelineAddEntries {
+  type: "TimelineAddEntries";
+  entries: Entry[];
+}
+export interface TimelineClearEntriesUnreadState {
+  type: "TimelineClearEntriesUnreadState";
+}
+export interface TimelineMarkEntriesUnreadGreaterThanSortIndex {
+  type: "TimelineMarkEntriesUnreadGreaterThanSortIndex";
+  sort_index: string;
 }
 
-interface Entry {
+export interface Entry {
   entryId: string;
   sortIndex: string;
-  content: Content;
+  content: EntryContent;
+  clientEventInfo?: ClientEventInfo;
 }
 
-interface Content {
-  entryType: string;
-  itemType?: string; // Explicit for specific content items
-  tweet?: XTweet; // Reference to a tweet if applicable
+export type EntryContent = TimelineCursor | TimelineItemEntryContent;
+
+export interface TimelineCursor {
+  entryType: "TimelineTimelineCursor";
+  __typename: "TimelineTimelineCursor";
+  value: string;
+  cursorType: "Top" | "Bottom";
 }
 
-export interface XNotificationItem {
+export interface TimelineItemEntryContent {
+  entryType: "TimelineTimelineItem";
+  __typename: "TimelineTimelineItem";
+  itemContent: TimelineNotification;
+}
+
+export interface TimelineNotification {
+  itemType: "TimelineNotification";
+  __typename: "TimelineNotification";
   id: string;
-  timestampMs: string;
-  icon: {
-    id: string;
-  };
-  message: {
-    text: string;
-    entities: MessageEntity[];
-    rtl: boolean;
-  };
-  template?: {
-    aggregateUserActionsV1?: {
-      targetObjects: TargetObject[];
-      fromUsers: { user: { id: string } }[];
-      showAllLinkText?: string;
-    };
-  };
+  notification_icon: string;
+  rich_message: RichMessage;
+  notification_url: NotificationUrl;
+  template: NotificationTemplate;
+  timestamp_ms?: string;
 }
 
-interface MessageEntity {
+export interface RichMessage {
+  rtl: boolean;
+  text: string;
+  entities: RichEntity[];
+}
+
+export interface RichEntity {
   fromIndex: number;
   toIndex: number;
-  ref: {
-    user: {
-      id: string;
+  ref: RichRef;
+}
+
+export type RichRef = TimelineRichTextUserRef | TimelineRichTextMentionRef;
+
+/**
+ * Detailed user record with core metadata
+ */
+export interface ProfileUser {
+  __typename: "User";
+  id: string;
+  rest_id: string;
+  core: {
+    created_at: string;
+    name: string;
+    screen_name: string;
+  };
+  [key: string]: any;
+}
+
+export interface TimelineRichTextUserRef {
+  type: "TimelineRichTextUser";
+  user_results: { result: ProfileUser };
+}
+
+export interface TimelineRichTextMentionRef {
+  type: "TimelineRichTextMention";
+  screen_name: string;
+  mention_results: {
+    result: {
+      __typename: string;
+      core: { screen_name: string };
+      rest_id: string;
     };
   };
 }
 
-interface TargetObject {
-  tweet: {
-    id: string;
-  };
+export interface NotificationUrl {
+  url: string;
+  urlType: string;
+  urtEndpointOptions?: { cacheId: string; title: string };
+}
+
+export interface NotificationTemplate {
+  __typename: string;
+  target_objects: any[];
+  from_users: NotificationUserRef[];
+}
+
+export interface NotificationUserRef {
+  __typename: string;
+  user_results: { result: ProfileUser };
+}
+
+export interface ClientEventInfo {
+  component: string;
+  element: string;
+  details: { notificationDetails: { impressionId: string; metadata: string } };
 }

@@ -2,9 +2,9 @@ import { logger } from "firebase-functions";
 import { onRequest } from "firebase-functions/v2/https";
 import { APIRequest, APIResponse } from "../types";
 import { NotificationService } from "../../notifications/service";
-import { XNotification } from "../../notifications/types";
+import { NotificationResponse } from "../../notifications/types";
 
-type ExpectedBody = XNotification;
+type ExpectedBody = NotificationResponse;
 
 export const onNotification = onRequest(
   async (request: APIRequest, response: APIResponse) => {
@@ -33,6 +33,55 @@ export const onNotification = onRequest(
   }
 );
 
+// const valdiatePayload = (payload: unknown): payload is ExpectedBody => {
+//   if (!payload) {
+//     return false;
+//   }
+//   if (typeof payload !== "object") {
+//     return false;
+//   }
+//   if (!("globalObjects" in payload && "timeline" in payload)) {
+//     return false;
+//   }
+//   if (!(typeof payload.globalObjects === "object")) {
+//     return false;
+//   }
+//   if (!payload.globalObjects) {
+//     return false;
+//   }
+//   // if (!("users" in payload.globalObjects)) {
+//   //   return false;
+//   // }
+//   // if (!("tweets" in payload.globalObjects)) {
+//   //   return false;
+//   // }
+//   // if (!("notifications" in payload.globalObjects)) {
+//   //   return false;
+//   // }
+//   if (
+//     "users" in payload.globalObjects &&
+//     (typeof payload.globalObjects.users !== "object" ||
+//       Array.isArray(payload.globalObjects.users))
+//   ) {
+//     return false;
+//   }
+//   if (
+//     "tweets" in payload.globalObjects &&
+//     (typeof payload.globalObjects.tweets !== "object" ||
+//       Array.isArray(payload.globalObjects.tweets))
+//   ) {
+//     return false;
+//   }
+//   if (
+//     "notifications" in payload.globalObjects &&
+//     (typeof payload.globalObjects.notifications !== "object" ||
+//       Array.isArray(payload.globalObjects.notifications))
+//   ) {
+//     return false;
+//   }
+//   return true;
+// };
+
 const valdiatePayload = (payload: unknown): payload is ExpectedBody => {
   if (!payload) {
     return false;
@@ -40,43 +89,31 @@ const valdiatePayload = (payload: unknown): payload is ExpectedBody => {
   if (typeof payload !== "object") {
     return false;
   }
-  if (!("globalObjects" in payload && "timeline" in payload)) {
+  if (!("data" in payload)) {
     return false;
   }
-  if (!(typeof payload.globalObjects === "object")) {
+  if (!(typeof payload.data === "object")) {
     return false;
   }
-  if (!payload.globalObjects) {
+  if (!payload.data) {
     return false;
   }
-  // if (!("users" in payload.globalObjects)) {
-  //   return false;
-  // }
-  // if (!("tweets" in payload.globalObjects)) {
-  //   return false;
-  // }
-  // if (!("notifications" in payload.globalObjects)) {
-  //   return false;
-  // }
-  if (
-    "users" in payload.globalObjects &&
-    (typeof payload.globalObjects.users !== "object" ||
-      Array.isArray(payload.globalObjects.users))
-  ) {
+  if (!("viewer_v2" in payload.data)) {
     return false;
   }
-  if (
-    "tweets" in payload.globalObjects &&
-    (typeof payload.globalObjects.tweets !== "object" ||
-      Array.isArray(payload.globalObjects.tweets))
-  ) {
+  if (!(typeof payload.data.viewer_v2 === "object")) {
     return false;
   }
-  if (
-    "notifications" in payload.globalObjects &&
-    (typeof payload.globalObjects.notifications !== "object" ||
-      Array.isArray(payload.globalObjects.notifications))
-  ) {
+  if (!payload.data.viewer_v2) {
+    return false;
+  }
+  if (!("user_results" in payload.data.viewer_v2)) {
+    return false;
+  }
+  if (!(typeof payload.data.viewer_v2.user_results === "object")) {
+    return false;
+  }
+  if (!payload.data.viewer_v2.user_results) {
     return false;
   }
   return true;
