@@ -1,7 +1,7 @@
 import { logger } from "firebase-functions";
 import { rapidAPIKey } from "../lib/secrets";
 import { batch } from "../lib/utils";
-import { XUserIDStr } from "../kols/types";
+import { XUserID } from "../kols/types";
 import {
   InternalTweetBundle,
   InternalTweetInterface,
@@ -12,11 +12,11 @@ const DEFAULT_RECENT_TWEET_LIMIT_MS = 5 * 60 * 1000;
 const DEFAULT_MAX_TWEETS = 5;
 
 export interface BatchFetchUserTweetsResponse {
-  xUserIDStr: XUserIDStr;
+  xUserID: XUserID;
   tweets: InternalTweetBundle[];
 }
 export const batchFetchUserTweets = async (
-  userIDs: XUserIDStr[],
+  userIDs: XUserID[],
   maxTweets = DEFAULT_MAX_TWEETS,
   recentTimeMS = DEFAULT_RECENT_TWEET_LIMIT_MS
 ): Promise<BatchFetchUserTweetsResponse[]> => {
@@ -43,7 +43,7 @@ export const batchFetchUserTweets = async (
 
     results.push(
       ...intermediateResults.map((tweets, idx) => ({
-        xUserIDStr: batch[idx],
+        xUserID: batch[idx],
         tweets,
       }))
     );
@@ -60,7 +60,7 @@ export const batchFetchUserTweets = async (
 };
 
 export const fetchUserTweets = async (
-  xUserID: XUserIDStr,
+  xUserID: XUserID,
   maxTweets = DEFAULT_MAX_TWEETS,
   recentTimeMS = DEFAULT_RECENT_TWEET_LIMIT_MS
 ): Promise<InternalTweetBundle[]> => {

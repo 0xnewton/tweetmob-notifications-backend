@@ -121,7 +121,6 @@ export const getWebhookPayload = ({
       id: userTweet.user.id,
       xHandle: userTweet.user.xHandle,
       xUserID: userTweet.user.xUserID,
-      xUserIDStr: userTweet.user.xUserIDStr,
       xScreenName: userTweet.user.xScreenName,
       xName: userTweet.user.xName,
     },

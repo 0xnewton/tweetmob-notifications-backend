@@ -46,7 +46,6 @@ export const createKOL = async (
     createdBy: payload.createdBy,
     lastPostSeenAt: null,
     xUserID: null, // Only filled in on first notification
-    xUserIDStr: null, // Only filled in on first notification
     xScreenName: null,
     xName: null,
     xUpdates: null,

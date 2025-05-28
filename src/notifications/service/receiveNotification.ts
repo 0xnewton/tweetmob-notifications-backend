@@ -117,9 +117,20 @@ const processNotification = async (users: ParsedNotification) => {
   const kolUpdateRequests = extractKOLsFromUsers(users, handleToKOLDict);
   logger.info("Fetched existing KOLs", {
     existingKOLs: kolsToProcess.map((kol) => kol.data),
+    kolUpdateRequests,
   });
   const kolsToProcessIDs = kolsToProcess
-    .map((kol) => kol.data.xUserIDStr)
+    .map((kol) => {
+      let restId = kol.data.xUserID;
+      if (!restId) {
+        // find it in the update req
+        const updateReq = kolUpdateRequests.find((k) => k.id === kol.data.id);
+        if (updateReq) {
+          restId = updateReq.payload.xUserID as string | null;
+        }
+      }
+      return restId;
+    })
     .filter((id): id is string => !!id);
   const kolTweets = await batchFetchUserTweets(kolsToProcessIDs);
   logger.info("Fetched user tweets", {
@@ -198,16 +209,13 @@ const constructKOLUpdatePayload = (
   if (kol.status === KOLStatus.Pending) {
     result.status = KOLStatus.Active;
   }
-  const userIdInt = parseInt(xUser.rest_id, 10);
-  if (kol.xUserID !== userIdInt) {
-    result.xUserID = userIdInt;
-    result.xUserIDStr = xUser.rest_id;
+  if (kol.xUserID !== xUser.rest_id) {
+    result.xUserID = xUser.rest_id;
     result.xScreenName = xUser.screen_name;
     result.xName = xUser.name;
     // Store updates just in case something fucks up
     const xUpdate: XKOLSnapshot = {
-      xUserID: userIdInt,
-      xUserIDStr: xUser.rest_id,
+      xUserID: xUser.rest_id,
       xScreenName: xUser.screen_name,
       xName: xUser.name,
       updatedAt: Date.now(),
@@ -285,7 +293,7 @@ const extractUserTweets = (
           tweet.data.createdAt &&
           new Date(tweet.data.createdAt).getTime() === maxCreatedTime
       );
-      const xUser = xUsers.find((u) => u.rest_id === t.xUserIDStr);
+      const xUser = xUsers.find((u) => u.rest_id === t.xUserID);
       if (!xUser) {
         logger.error("No user found for tweet", { tweet: t });
         return null;
@@ -320,8 +328,7 @@ const augmentUserTweetsWithKOLData = (
       if (xUser) {
         const tempKOLUpdateData = constructKOLUpdatePayload(ut.user, xUser);
         if (tempKOLUpdateData.xUserID) {
-          userClone.xUserID = tempKOLUpdateData.xUserID as number;
-          userClone.xUserIDStr = tempKOLUpdateData.xUserIDStr as string;
+          userClone.xUserID = tempKOLUpdateData.xUserID as string;
           userClone.xScreenName = tempKOLUpdateData.xScreenName as string;
           userClone.xName = tempKOLUpdateData.xName as string;
         }

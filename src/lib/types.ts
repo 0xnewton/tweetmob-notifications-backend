@@ -28,8 +28,7 @@ export interface WebhookPayload {
   user: {
     id: KOLID;
     xHandle: XHandle;
-    xUserID: number | null;
-    xUserIDStr: string | null;
+    xUserID: string | null;
     xScreenName: string | null;
     xName: string | null;
   };

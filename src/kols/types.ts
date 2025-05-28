@@ -5,8 +5,7 @@ import { InternalTweetInterface, TweetFromXApi } from "../x/types";
 export type KOLID = string;
 export type XHandle = string;
 export type TweetID = string;
-export type XUserID = number;
-export type XUserIDStr = string;
+export type XUserID = string;
 
 export enum KOLStatus {
   Active = "active",
@@ -15,8 +14,7 @@ export enum KOLStatus {
 }
 
 export interface XKOLSnapshot {
-  xUserID: number;
-  xUserIDStr: string;
+  xUserID: string;
   xScreenName: string;
   xName: string;
   updatedAt: number; // unix timestamp
@@ -25,8 +23,7 @@ export interface XKOLSnapshot {
 export interface KOL {
   id: KOLID;
   xHandle: XHandle;
-  xUserID: XUserID | null; // Only filled in on first notification
-  xUserIDStr: XUserIDStr | null; // Only filled in on first notification
+  xUserID: XUserID | null; // Only filled in on first notification (this is the rest_id from rapid api)
   xScreenName: string | null;
   xName: string | null;
   status: KOLStatus;
