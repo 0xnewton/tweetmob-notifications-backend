@@ -1,165 +1,152 @@
-export interface UserTweetRootObject {
-  data?: {
-    user?: {
-      result?: {
-        timeline_v2?: {
-          timeline?: {
-            instructions?: Instruction[];
-          };
-        };
-      };
-    };
-  };
+export interface InternalTweetBundle {
+  data: InternalTweetInterface;
+  raw: TweetFromXApi;
 }
 
-interface Instruction {
-  type?: string;
-  entries?: Entry[];
+export interface InternalTweetInterface {
+  userId: string;
+  tweetId: string;
+  text: string;
+  createdAt: string; // ISO 8601 format
+  lang: string;
 }
 
-interface Entry {
-  entryId?: string;
-  sortIndex?: string;
-  content?: EntryContent;
+export interface TwitterApiResponse {
+  pinned: TweetFromXApi;
+  timeline: TweetFromXApi[];
+  next_cursor: string;
+  prev_cursor: string;
+  status: "ok" | string;
+  user: UserProfile;
 }
 
-interface EntryContent {
-  entryType?: string;
-  __typename?: string;
-  itemContent?: ItemContent;
+export interface TweetFromXApi {
+  tweet_id: string;
+  conversation_id: string;
+  created_at: string;
+  bookmarks: number;
+  favorites: number;
+  text: string;
+  lang: string;
+  views: string;
+  quotes?: number;
+  replies: number;
+  retweets: number;
+  media?: Media;
+  author: Author;
+  entities?: Entities;
+  quoted?: TweetFromXApi;
+  retweeted?: { id: string };
+  retweeted_tweet?: TweetFromXApi;
 }
 
-interface ItemContent {
-  itemType?: string;
-  __typename?: string;
-  tweet_results?: TweetResults;
-  tweetDisplayType?: string;
-  ruxContext?: string;
+export type Media = MediaGroup | PhotoMedia[];
+
+export interface MediaGroup {
+  photo?: PhotoMedia[];
+  video?: VideoMedia[];
 }
 
-interface TweetResults {
-  result?: Tweet;
+export interface PhotoMedia {
+  id: string;
+  media_url_https: string;
+  sizes?: Record<string, MediaSize>;
+  original_info?: OriginalInfo;
+  // other optional properties as needed
+  [key: string]: any;
 }
 
-interface Tweet {
-  __typename?: string;
-  rest_id?: string;
-  core?: {
-    user_results?: {
-      result?: UserResult;
-    };
-  };
-  legacy?: TweetLegacy;
+export interface VideoMedia {
+  id: string;
+  media_url_https: string;
+  variants: VideoVariant[];
+  aspect_ratio: [number, number];
+  original_info: OriginalInfo;
 }
 
-interface UserResult {
-  __typename?: string;
-  id?: string;
-  rest_id?: string;
-  affiliates_highlighted_label?: {
-    label?: AffiliatesHighlightedLabel;
-  };
-  is_blue_verified?: boolean;
-  profile_image_shape?: string;
-  legacy?: UserLegacy;
-}
-
-interface AffiliatesHighlightedLabel {
-  url?: {
-    url?: string;
-    urlType?: string;
-  };
-  badge?: {
-    url?: string;
-  };
-  description?: string;
-  userLabelType?: string;
-  userLabelDisplayType?: string;
-}
-
-interface UserLegacy {
-  created_at?: string;
-  description?: string;
-  entities?: {
-    description?: {
-      urls?: [];
-    };
-    url?: {
-      urls?: UrlEntity[];
-    };
-  };
-  followers_count?: number;
-  friends_count?: number;
-  screen_name?: string;
-}
-
-interface UrlEntity {
-  display_url?: string;
-  expanded_url?: string;
-  url?: string;
-  indices?: number[];
-}
-
-export interface TweetLegacy {
-  user_id_str?: string;
-  created_at?: string;
-  full_text?: string;
-  id_str?: string;
-  favorite_count?: number;
-  retweet_count?: number;
-  entities?: {
-    media?: MediaEntity[]; // Media added here
-    user_mentions?: UserMention[];
-    urls?: UrlEntity[];
-  };
-  extended_entities?: {
-    media?: MediaEntity[]; // Extended media for videos, etc.
-  };
-}
-
-interface MediaEntity {
-  display_url?: string;
-  expanded_url?: string;
-  id_str?: string;
-  media_url_https?: string;
-  type?: "photo" | "video" | "animated_gif";
-  url?: string;
-  features?: Record<string, unknown>;
-  sizes?: {
-    thumb?: MediaSize;
-    large?: MediaSize;
-    medium?: MediaSize;
-    small?: MediaSize;
-  };
-  original_info?: {
-    height?: number;
-    width?: number;
-  };
-  video_info?: {
-    aspect_ratio?: [number, number];
-    duration_millis?: number;
-    variants?: {
-      bitrate?: number;
-      content_type?: string;
-      url?: string;
-    }[];
-  };
-}
-
-interface MediaSize {
-  h?: number; // Height
-  w?: number; // Width
-  resize?: string; // "crop" or "fit"
-}
-
-interface UserMention {
-  id_str?: string;
-  name?: string;
-  screen_name?: string;
-  indices?: number[];
-}
-
-export interface ParsedTweetLegacy extends TweetLegacy {
+export interface VideoVariant {
+  bitrate?: number;
+  content_type: string;
   url: string;
-  userIdString: string;
+}
+
+export interface MediaSize {
+  w: number;
+  h: number;
+  resize: string;
+}
+
+export interface OriginalInfo {
+  height: number;
+  width: number;
+  focus_rects: FocusRect[];
+}
+
+export interface FocusRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface Author {
+  rest_id: string;
+  name: string;
+  screen_name: string;
+  avatar: string;
+  blue_verified: boolean;
+}
+
+export interface Entities {
+  hashtags: any[];
+  symbols: any[];
+  timestamps: any[];
+  urls: any[];
+  user_mentions: UserMention[];
+  media?: any[];
+}
+
+export interface UserMention {
+  id_str: string;
+  name: string;
+  screen_name: string;
+}
+
+export interface UserProfile {
+  status: string;
+  profile: string;
+  rest_id: string;
+  blue_verified: boolean;
+  affiliates: Affiliates;
+  business_account: any[];
+  avatar: string;
+  header_image: string;
+  desc: string;
+  name: string;
+  protected: null;
+  location: string;
+  friends: number;
+  sub_count: number;
+  statuses_count: number;
+  media_count: number;
+  created_at: string;
+  pinned_tweet_ids_str: string[];
+  id: string;
+}
+
+export interface Affiliates {
+  label: AffiliateLabel;
+}
+
+export interface AffiliateLabel {
+  url: {
+    url: string;
+    urlType: string;
+  };
+  badge: {
+    url: string;
+  };
+  description: string;
+  userLabelType: string;
+  userLabelDisplayType: string;
 }

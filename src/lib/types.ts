@@ -1,6 +1,6 @@
 import { DocumentReference } from "firebase-admin/firestore";
 import { KOL, KOLID, XHandle } from "../kols/types";
-import { ParsedTweetLegacy } from "../x/types";
+import { InternalTweetBundle } from "../x/types";
 
 export type UnixTimestamp = number;
 
@@ -20,11 +20,11 @@ export type FetchResult<T> = {
 
 export interface UserTweet {
   user: KOL;
-  tweet: ParsedTweetLegacy;
+  tweet: InternalTweetBundle;
 }
 
 export interface WebhookPayload {
-  tweet: ParsedTweetLegacy;
+  tweet: InternalTweetBundle;
   user: {
     id: KOLID;
     xHandle: XHandle;

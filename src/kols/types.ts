@@ -1,6 +1,6 @@
 import { UnixTimestamp } from "../lib/types";
 import { UserID } from "../users/types";
-import { ParsedTweetLegacy } from "../x/types";
+import { InternalTweetInterface, TweetFromXApi } from "../x/types";
 
 export type KOLID = string;
 export type XHandle = string;
@@ -43,6 +43,7 @@ export interface KOL {
 export interface Tweet {
   id: TweetID;
   kolID: KOLID;
-  tweet: ParsedTweetLegacy;
+  tweet: InternalTweetInterface;
+  rawTweet: TweetFromXApi;
   createdAt: UnixTimestamp;
 }

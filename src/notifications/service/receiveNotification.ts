@@ -15,7 +15,7 @@ import {
 import { SubscriptionService } from "../../subscriptions/service";
 import { UserTweet } from "../../lib/types";
 import { writeWebhookReceipts } from "../../subscriptions/service/writeWebhookReceipts";
-import { ParsedTweetLegacy } from "../../x/types";
+import { InternalTweetBundle } from "../../x/types";
 
 const IGNORE_NOTIFICATIONS_YOUNGER_THAN_MS = 4 * 60 * 1000; // 4 minutes
 
@@ -157,9 +157,7 @@ const processNotification = async (data: ParsedNotification) => {
     const kolID = kol.id;
     const payload: BatchUpdateTweetsAndKOLsParams = {
       id: kolID,
-      tweet: {
-        xApiResponse: { ...tweet },
-      },
+      tweet,
     };
     const kolUpdateRequest = kolUpdateRequests.find(
       (k) => k.id === kolID
@@ -271,13 +269,13 @@ const extractUserTweets = (
     .map((t) => {
       const maxCreatedTime = Math.max(
         ...t.tweets.map((tweet) =>
-          !tweet.created_at ? 0 : new Date(tweet.created_at).getTime()
+          !tweet.data.createdAt ? 0 : new Date(tweet.data.createdAt).getTime()
         )
       );
       const mostRecentTweet = t.tweets.find(
         (tweet) =>
-          tweet.created_at &&
-          new Date(tweet.created_at).getTime() === maxCreatedTime
+          tweet.data.createdAt &&
+          new Date(tweet.data.createdAt).getTime() === maxCreatedTime
       );
       const xUser = xUsers.find((u) => u.id_str === t.xUserIDStr);
       if (!xUser) {
@@ -300,7 +298,10 @@ const extractUserTweets = (
 const augmentUserTweetsWithKOLData = (
   userMostRecentTweets: UserTweet[],
   handleToXUserDict: Record<XHandle, XUser>
-): { user: KOL; tweet: ParsedTweetLegacy }[] => {
+): {
+  user: KOL;
+  tweet: InternalTweetBundle;
+}[] => {
   const augmenteUserMostRecentTweets = userMostRecentTweets.map((ut) => {
     // For example, if KOL hasnt been updated yet, we fill in the data here
     const userClone = {

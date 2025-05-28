@@ -12,7 +12,7 @@ import { UserID } from "../users/types";
 import { KOL, KOLID, KOLStatus, Tweet, XHandle } from "./types";
 import { db } from "../firebase";
 import { logger } from "firebase-functions";
-import { ParsedTweetLegacy } from "../x/types";
+import { InternalTweetBundle } from "../x/types";
 
 export const getKOLByXHandle = async (
   xHandle: XHandle
@@ -86,14 +86,10 @@ export const bulkFetchKOLsByHandle = async (
   return flat;
 };
 
-interface CreateTweetPayload {
-  xApiResponse: ParsedTweetLegacy;
-}
-
 export interface BatchUpdateTweetsAndKOLsParams {
   kolPayload?: UpdateData<KOL>;
   id: KOLID;
-  tweet?: CreateTweetPayload;
+  tweet?: InternalTweetBundle;
 }
 
 export interface WriteKOLResponses {
@@ -119,7 +115,8 @@ export const batchUpdateTweetsAndKOLs = async (
         const body: Tweet = {
           id: tweetRef.id,
           kolID: param.id,
-          tweet: param.tweet.xApiResponse,
+          tweet: param.tweet.data,
+          rawTweet: param.tweet.raw,
           createdAt: Date.now(),
         };
         result.push({ tweet: body });

@@ -1,15 +1,19 @@
 import { logger } from "firebase-functions";
 import { rapidAPIKey } from "../lib/secrets";
-import { ParsedTweetLegacy, UserTweetRootObject } from "./types";
 import { batch } from "../lib/utils";
 import { XUserIDStr } from "../kols/types";
+import {
+  InternalTweetBundle,
+  InternalTweetInterface,
+  TwitterApiResponse,
+} from "./types";
 
 const DEFAULT_RECENT_TWEET_LIMIT_MS = 5 * 60 * 1000;
 const DEFAULT_MAX_TWEETS = 5;
 
 export interface BatchFetchUserTweetsResponse {
   xUserIDStr: XUserIDStr;
-  tweets: ParsedTweetLegacy[];
+  tweets: InternalTweetBundle[];
 }
 export const batchFetchUserTweets = async (
   userIDs: XUserIDStr[],
@@ -59,88 +63,125 @@ export const fetchUserTweets = async (
   xUserID: XUserIDStr,
   maxTweets = DEFAULT_MAX_TWEETS,
   recentTimeMS = DEFAULT_RECENT_TWEET_LIMIT_MS
-): Promise<ParsedTweetLegacy[]> => {
+): Promise<InternalTweetBundle[]> => {
   logger.info("Fetching user tweets", { xUserID, maxTweets, recentTimeMS });
   const apiKey = rapidAPIKey.value();
-  const url = `https://twitter135.p.rapidapi.com/v2/UserTweets/?id=${xUserID}&count=${maxTweets}`;
+  // const url = `https://twitter135.p.rapidapi.com/v2/UserTweets/?id=${xUserID}&count=${maxTweets}`;
+  const url = `https://twitter-api45.p.rapidapi.com/timeline.php?screenname=foobar&rest_id=${xUserID}`;
   const options = {
     method: "GET",
     headers: {
       "x-rapidapi-key": apiKey,
-      "x-rapidapi-host": "twitter135.p.rapidapi.com",
+      // "x-rapidapi-host": "twitter135.p.rapidapi.com",
+      "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
     },
   };
 
   try {
     const response = await fetch(url, options);
-    const result = (await response.json()) as UserTweetRootObject | undefined;
+    const result = (await response.json()) as TwitterApiResponse | undefined;
     logger.info("Fetched user tweets from rapid api", { result });
 
-    const entries =
-      result?.data?.user?.result?.timeline_v2?.timeline?.instructions?.find(
-        (instruction) => instruction.type === "TimelineAddEntries"
-      )?.entries;
+    const tweets: InternalTweetBundle[] = [];
 
-    const tweets: ParsedTweetLegacy[] = [];
-    if (entries?.length) {
-      for (const entry of entries.slice(0, maxTweets)) {
-        const username =
-          entry?.content?.itemContent?.tweet_results?.result?.core?.user_results
-            ?.result?.legacy?.screen_name || "username";
-        const item = entry?.content?.itemContent?.tweet_results?.result?.legacy;
-        if (!item) {
-          logger.debug("No tweet provided", { item, entry, username });
-          continue;
-        }
+    for (const tweet of result?.timeline || []) {
+      if (!tweet || !tweet.tweet_id || !tweet.author) {
+        logger.debug("Invalid tweet data", { tweet });
+        continue;
+      }
 
-        if (recentTimeMS) {
-          const createdAt = item?.created_at;
-          // check if within the last 5 minutes
-          if (!createdAt) {
-            logger.debug("Tweet has no creation time", { item });
-            continue;
-          }
-          const shiftedAnchorTime = new Date(Date.now() - recentTimeMS);
-          const createdDateTime = new Date(createdAt);
-          if (isNaN(createdDateTime.getTime())) {
-            logger.warn("Invalid date format", { createdAt });
-            continue;
-          }
-          const isTweetTooOld = createdDateTime < shiftedAnchorTime;
-          logger.info("Checking tweet creation time", {
+      const createdAt = new Date(tweet.created_at);
+      if (isNaN(createdAt.getTime())) {
+        logger.warn("Invalid tweet creation date", { createdAt });
+        continue;
+      }
+
+      if (recentTimeMS) {
+        const shiftedAnchorTime = new Date(Date.now() - recentTimeMS);
+        if (createdAt < shiftedAnchorTime) {
+          logger.debug("Tweet is older than the recent time limit", {
             createdAt,
             shiftedAnchorTime,
-            createdDateTime,
-            isTweetTooOld,
           });
-          if (isTweetTooOld) {
-            const diffInMins =
-              (Date.now() - createdDateTime.getTime()) / (60 * 1000);
-            logger.debug("Tweet is older than 5 minutes", {
-              createdAt,
-              diffInMins,
-            });
-            continue;
-          }
-        }
-
-        if (
-          item &&
-          item.id_str &&
-          item.full_text &&
-          username &&
-          item.user_id_str
-        ) {
-          const payload: ParsedTweetLegacy = {
-            ...item,
-            url: `https://x.com/${username}/status/${item.id_str}`,
-            userIdString: item.user_id_str,
-          };
-          logger.info("Adding tweet", payload);
-          tweets.push(payload);
+          continue;
         }
       }
+
+      const internalTweet: InternalTweetInterface = {
+        userId: tweet.author.rest_id,
+        tweetId: tweet.tweet_id,
+        text: tweet.text,
+        createdAt: createdAt.toISOString(),
+        lang: tweet.lang,
+      };
+      tweets.push({ data: internalTweet, raw: tweet });
     }
+
+    // const entries =
+    //   result?.data?.user?.result?.timeline_v2?.timeline?.instructions?.find(
+    //     (instruction) => instruction.type === "TimelineAddEntries"
+    //   )?.entries;
+
+    // const tweets: ParsedTweetLegacy[] = [];
+    // if (entries?.length) {
+    //   for (const entry of entries.slice(0, maxTweets)) {
+    //     const username =
+    //       entry?.content?.itemContent?.tweet_results?.result?.core?.user_results
+    //         ?.result?.legacy?.screen_name || "username";
+    //     const item = entry?.content?.itemContent?.tweet_results?.result?.legacy;
+    //     if (!item) {
+    //       logger.debug("No tweet provided", { item, entry, username });
+    //       continue;
+    //     }
+
+    //     if (recentTimeMS) {
+    //       const createdAt = item?.created_at;
+    //       // check if within the last 5 minutes
+    //       if (!createdAt) {
+    //         logger.debug("Tweet has no creation time", { item });
+    //         continue;
+    //       }
+    //       const shiftedAnchorTime = new Date(Date.now() - recentTimeMS);
+    //       const createdDateTime = new Date(createdAt);
+    //       if (isNaN(createdDateTime.getTime())) {
+    //         logger.warn("Invalid date format", { createdAt });
+    //         continue;
+    //       }
+    //       const isTweetTooOld = createdDateTime < shiftedAnchorTime;
+    //       logger.info("Checking tweet creation time", {
+    //         createdAt,
+    //         shiftedAnchorTime,
+    //         createdDateTime,
+    //         isTweetTooOld,
+    //       });
+    //       if (isTweetTooOld) {
+    //         const diffInMins =
+    //           (Date.now() - createdDateTime.getTime()) / (60 * 1000);
+    //         logger.debug("Tweet is older than 5 minutes", {
+    //           createdAt,
+    //           diffInMins,
+    //         });
+    //         continue;
+    //       }
+    //     }
+
+    //     if (
+    //       item &&
+    //       item.id_str &&
+    //       item.full_text &&
+    //       username &&
+    //       item.user_id_str
+    //     ) {
+    //       const payload: ParsedTweetLegacy = {
+    //         ...item,
+    //         url: `https://x.com/${username}/status/${item.id_str}`,
+    //         userIdString: item.user_id_str,
+    //       };
+    //       logger.info("Adding tweet", payload);
+    //       tweets.push(payload);
+    //     }
+    //   }
+    // }
     return tweets;
   } catch (error: any) {
     logger.error("An error occurred", {

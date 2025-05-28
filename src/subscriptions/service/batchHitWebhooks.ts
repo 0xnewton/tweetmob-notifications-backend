@@ -8,10 +8,10 @@ import {
   WebhookResponseData,
 } from "../types";
 import { KOL } from "../../kols/types";
-import { ParsedTweetLegacy } from "../../x/types";
 import { batch } from "../../lib/utils";
 import axios, { AxiosResponse } from "axios";
 import { TimeoutError } from "../errors";
+import { InternalTweetBundle } from "../../x/types";
 
 export interface HitWebhooksResponse {
   webhookPayload: WebhookPayload;
@@ -20,7 +20,7 @@ export interface HitWebhooksResponse {
   error: ResponseError | null;
   subscription: Subscription;
   kol: KOL;
-  tweet: ParsedTweetLegacy;
+  tweet: InternalTweetBundle;
   url: string;
 }
 
