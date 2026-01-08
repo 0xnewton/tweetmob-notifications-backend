@@ -26,7 +26,7 @@ export const validate = async (apiKey: string): Promise<ValidateResponse> => {
     throw new Error("Unauthorized");
   }
 
-  logger.info("API key found", { id: key.data.id, userID: key.data.createdAt });
+  logger.info("API key found", { id: key.data.id, userID: key.data.createdBy });
 
   // Fetch the user
   const user = await userService.getByUserID(key.data.createdBy);

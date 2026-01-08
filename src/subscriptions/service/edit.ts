@@ -9,6 +9,7 @@ import {
 } from "../types";
 import { getByID } from "./getByID";
 import { SubscriptionNotFoundError } from "../errors";
+import { isValidURL } from "../../lib/url";
 
 interface EditSubscriptionParams {
   id: SubscriptionID;
@@ -38,6 +39,11 @@ export const edit = async (
   if (!subscription) {
     logger.debug("Subscription not found", { params });
     throw new SubscriptionNotFoundError("Subscription not found");
+  }
+
+  if (params.payload.webhookURL && !isValidURL(params.payload.webhookURL)) {
+    logger.debug("Invalid webhook URL", { webhookURL: params.payload.webhookURL });
+    throw new Error("Invalid webhook URL");
   }
 
   const result = await editSubscription({

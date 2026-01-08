@@ -67,12 +67,14 @@ export const hitWebhooks = async (
     })
     .filter(<T>(sub: T | null): sub is T => sub !== null);
 
-  // Hit all their webhooks
+  // Hit all their webhooks with a cap on concurrent requests per batch.
   const batches = batch(enhancedSubData, maxConcurrentRequests);
+  const responses: HitWebhooksResponse[] = [];
 
-  const responses = await Promise.all(
-    batches.map((batch) => batch.map(processWebhook)).flat()
-  );
+  for (const batchItems of batches) {
+    const batchResponses = await Promise.all(batchItems.map(processWebhook));
+    responses.push(...batchResponses);
+  }
 
   return responses;
 };

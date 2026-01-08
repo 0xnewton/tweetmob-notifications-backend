@@ -12,7 +12,7 @@ export const privateAPIKeyValidator = async (
   const expectedKey = privateAPIKey.value();
 
   if (apiKey !== expectedKey) {
-    logger.error("Invalid API Key", { apiKey });
+    logger.error("Invalid API Key");
     res.status(401).send("Unauthorized");
     return;
   }
